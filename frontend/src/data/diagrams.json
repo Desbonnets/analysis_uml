@@ -1,0 +1,167 @@
+[
+  {
+    "id": "diag-1",
+    "projectId": "proj-1",
+    "name": "Diagramme de classes — Catalogue",
+    "type": "class",
+    "createdAt": "2026-03-12T10:00:00Z",
+    "updatedAt": "2026-05-01T14:32:00Z",
+    "classes": [
+      {
+        "id": "cls-1",
+        "name": "Product",
+        "type": "class",
+        "package": "com.ecommerce.catalog",
+        "attributes": ["- id: Long", "- name: String", "- price: BigDecimal", "- stock: Integer"],
+        "methods": ["+ getId(): Long", "+ setPrice(price: BigDecimal): void", "+ isAvailable(): boolean"],
+        "x": 80,
+        "y": 80
+      },
+      {
+        "id": "cls-2",
+        "name": "Category",
+        "type": "class",
+        "package": "com.ecommerce.catalog",
+        "attributes": ["- id: Long", "- name: String", "- parentId: Long"],
+        "methods": ["+ getId(): Long", "+ getChildren(): List<Category>"],
+        "x": 380,
+        "y": 80
+      },
+      {
+        "id": "cls-3",
+        "name": "ProductRepository",
+        "type": "interface",
+        "package": "com.ecommerce.catalog.repository",
+        "attributes": [],
+        "methods": ["+ findById(id: Long): Optional<Product>", "+ findByCategory(cat: Category): List<Product>", "+ save(p: Product): Product"],
+        "x": 80,
+        "y": 320
+      },
+      {
+        "id": "cls-4",
+        "name": "CatalogService",
+        "type": "class",
+        "package": "com.ecommerce.catalog.service",
+        "attributes": ["- productRepo: ProductRepository", "- categoryRepo: CategoryRepository"],
+        "methods": ["+ getProduct(id: Long): Product", "+ listByCategory(catId: Long): List<Product>", "+ updateStock(id: Long, qty: int): void"],
+        "x": 380,
+        "y": 320
+      },
+      {
+        "id": "cls-5",
+        "name": "ProductController",
+        "type": "class",
+        "package": "com.ecommerce.catalog.controller",
+        "attributes": ["- catalogService: CatalogService"],
+        "methods": ["+ getProduct(id: Long): ResponseEntity", "+ listProducts(): ResponseEntity", "+ createProduct(dto: ProductDTO): ResponseEntity"],
+        "x": 680,
+        "y": 200
+      }
+    ],
+    "relations": [
+      { "from": "cls-4", "to": "cls-3", "type": "uses" },
+      { "from": "cls-3", "to": "cls-1", "type": "uses" },
+      { "from": "cls-1", "to": "cls-2", "type": "uses" },
+      { "from": "cls-5", "to": "cls-4", "type": "uses" }
+    ]
+  },
+  {
+    "id": "diag-2",
+    "projectId": "proj-1",
+    "name": "Diagramme de classes — Panier",
+    "type": "class",
+    "createdAt": "2026-03-14T10:00:00Z",
+    "updatedAt": "2026-04-28T09:00:00Z",
+    "classes": [
+      {
+        "id": "cls-6",
+        "name": "Cart",
+        "type": "class",
+        "package": "com.ecommerce.cart",
+        "attributes": ["- id: Long", "- userId: Long", "- items: List<CartItem>"],
+        "methods": ["+ addItem(item: CartItem): void", "+ removeItem(id: Long): void", "+ getTotal(): BigDecimal"],
+        "x": 80,
+        "y": 80
+      },
+      {
+        "id": "cls-7",
+        "name": "CartItem",
+        "type": "class",
+        "package": "com.ecommerce.cart",
+        "attributes": ["- productId: Long", "- quantity: Integer", "- unitPrice: BigDecimal"],
+        "methods": ["+ getSubtotal(): BigDecimal"],
+        "x": 380,
+        "y": 80
+      },
+      {
+        "id": "cls-8",
+        "name": "CartService",
+        "type": "class",
+        "package": "com.ecommerce.cart.service",
+        "attributes": ["- cartRepo: CartRepository"],
+        "methods": ["+ getCart(userId: Long): Cart", "+ checkout(cartId: Long): Order"],
+        "x": 80,
+        "y": 320
+      }
+    ],
+    "relations": [
+      { "from": "cls-6", "to": "cls-7", "type": "aggregates" },
+      { "from": "cls-8", "to": "cls-6", "type": "uses" }
+    ]
+  },
+  {
+    "id": "diag-3",
+    "projectId": "proj-2",
+    "name": "Diagramme de classes — Comptes",
+    "type": "class",
+    "createdAt": "2026-02-22T10:00:00Z",
+    "updatedAt": "2026-04-15T10:00:00Z",
+    "classes": [
+      {
+        "id": "cls-9",
+        "name": "BankAccount",
+        "type": "abstract",
+        "package": "com.banking.account",
+        "attributes": ["# id: Long", "# iban: String", "# balance: BigDecimal", "# owner: Customer"],
+        "methods": ["+ deposit(amount: BigDecimal): void", "+ withdraw(amount: BigDecimal): void", "+ getBalance(): BigDecimal"],
+        "x": 300,
+        "y": 60
+      },
+      {
+        "id": "cls-10",
+        "name": "SavingsAccount",
+        "type": "class",
+        "package": "com.banking.account",
+        "attributes": ["- interestRate: Double"],
+        "methods": ["+ applyInterest(): void"],
+        "x": 80,
+        "y": 300
+      },
+      {
+        "id": "cls-11",
+        "name": "CurrentAccount",
+        "type": "class",
+        "package": "com.banking.account",
+        "attributes": ["- overdraftLimit: BigDecimal"],
+        "methods": ["+ getOverdraft(): BigDecimal"],
+        "x": 520,
+        "y": 300
+      },
+      {
+        "id": "cls-12",
+        "name": "Transaction",
+        "type": "class",
+        "package": "com.banking.transaction",
+        "attributes": ["- id: Long", "- amount: BigDecimal", "- type: TransactionType", "- createdAt: LocalDateTime"],
+        "methods": ["+ getAmount(): BigDecimal", "+ getType(): TransactionType"],
+        "x": 300,
+        "y": 480
+      }
+    ],
+    "relations": [
+      { "from": "cls-10", "to": "cls-9", "type": "extends" },
+      { "from": "cls-11", "to": "cls-9", "type": "extends" },
+      { "from": "cls-9", "to": "cls-12", "type": "uses" }
+    ]
+  }
+]

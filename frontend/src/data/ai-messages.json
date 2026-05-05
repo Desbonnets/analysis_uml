@@ -1,0 +1,32 @@
+[
+  {
+    "id": "msg-1",
+    "role": "assistant",
+    "content": "Bonjour ! Je suis votre assistant IA d'architecture logicielle. Je peux analyser vos projets, détecter des problèmes de conception, suggérer des refactorings et générer des diagrammes UML. Comment puis-je vous aider ?",
+    "timestamp": "2026-05-05T09:00:00Z"
+  },
+  {
+    "id": "msg-2",
+    "role": "user",
+    "content": "Peux-tu analyser l'architecture du projet BankingSystem ?",
+    "timestamp": "2026-05-05T09:01:00Z"
+  },
+  {
+    "id": "msg-3",
+    "role": "assistant",
+    "content": "J'ai analysé le projet **BankingSystem**. Voici mes observations :\n\n**Score global : 62/100** — Architecture à améliorer\n\n**Problèmes critiques :**\n- `FeeCalculator` viole le principe **Ouvert/Fermé** (OCP) avec une logique conditionnelle non extensible\n- `PremiumAccount` viole le principe de **substitution de Liskov** (LSP)\n\n**Recommandations prioritaires :**\n1. Remplacer les if/else de `calculateFees()` par un pattern **Strategy**\n2. Extraire la logique métier de `BankAccount` vers une couche service dédiée\n3. Introduire une interface `INotificationSender` pour respecter le DIP\n\nVoulez-vous que je génère le code refactorisé pour l'un de ces points ?",
+    "timestamp": "2026-05-05T09:01:15Z"
+  },
+  {
+    "id": "msg-4",
+    "role": "user",
+    "content": "Génère un exemple du pattern Strategy pour FeeCalculator",
+    "timestamp": "2026-05-05T09:02:00Z"
+  },
+  {
+    "id": "msg-5",
+    "role": "assistant",
+    "content": "Voici le refactoring avec le pattern **Strategy** :\n\n```java\n// Interface Strategy\npublic interface FeeStrategy {\n    BigDecimal calculate(BigDecimal amount);\n}\n\n// Implémentations\npublic class SavingsFeeStrategy implements FeeStrategy {\n    public BigDecimal calculate(BigDecimal amount) {\n        return amount.multiply(new BigDecimal(\"0.001\"));\n    }\n}\n\npublic class PremiumFeeStrategy implements FeeStrategy {\n    public BigDecimal calculate(BigDecimal amount) {\n        return BigDecimal.ZERO; // Pas de frais\n    }\n}\n\n// FeeCalculator refactorisé\npublic class FeeCalculator {\n    private final FeeStrategy strategy;\n\n    public FeeCalculator(FeeStrategy strategy) {\n        this.strategy = strategy;\n    }\n\n    public BigDecimal calculateFees(BigDecimal amount) {\n        return strategy.calculate(amount);\n    }\n}\n```\n\nCette approche respecte l'OCP : pour ajouter un nouveau type de compte, il suffit de créer une nouvelle implémentation de `FeeStrategy` sans toucher au code existant.",
+    "timestamp": "2026-05-05T09:02:10Z"
+  }
+]

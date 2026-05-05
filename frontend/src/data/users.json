@@ -1,0 +1,15 @@
+{
+  "currentUser": {
+    "id": "user-1",
+    "name": "Alice Martin",
+    "email": "alice.martin@example.com",
+    "role": "architect",
+    "plan": "pro",
+    "avatar": "AM"
+  },
+  "team": [
+    { "id": "user-1", "name": "Alice Martin", "email": "alice.martin@example.com", "role": "architect", "plan": "pro", "avatar": "AM" },
+    { "id": "user-2", "name": "Thomas Dupont", "email": "thomas.dupont@example.com", "role": "developer", "plan": "pro", "avatar": "TD" },
+    { "id": "user-3", "name": "Sarah Chen", "email": "sarah.chen@example.com", "role": "admin", "plan": "enterprise", "avatar": "SC" }
+  ]
+}

@@ -1,0 +1,67 @@
+[
+  {
+    "id": "proj-1",
+    "name": "EcommerceApp",
+    "description": "Plateforme e-commerce microservices avec gestion de catalogue, panier et paiement.",
+    "language": "Spring Boot",
+    "status": "analyzed",
+    "createdAt": "2026-03-10T10:00:00Z",
+    "updatedAt": "2026-05-01T14:32:00Z",
+    "score": 78,
+    "diagramsCount": 5,
+    "violationsCount": 4,
+    "owner": "Alice Martin"
+  },
+  {
+    "id": "proj-2",
+    "name": "BankingSystem",
+    "description": "Système bancaire avec gestion de comptes, virements et notifications temps réel.",
+    "language": "Spring Boot",
+    "status": "analyzed",
+    "createdAt": "2026-02-20T09:00:00Z",
+    "updatedAt": "2026-04-28T11:00:00Z",
+    "score": 62,
+    "diagramsCount": 3,
+    "violationsCount": 11,
+    "owner": "Thomas Dupont"
+  },
+  {
+    "id": "proj-3",
+    "name": "CRMPlatform",
+    "description": "Gestion de la relation client avec pipeline de vente et reporting.",
+    "language": "Symfony",
+    "status": "pending",
+    "createdAt": "2026-04-15T08:00:00Z",
+    "updatedAt": "2026-05-03T16:45:00Z",
+    "score": 0,
+    "diagramsCount": 0,
+    "violationsCount": 0,
+    "owner": "Alice Martin"
+  },
+  {
+    "id": "proj-4",
+    "name": "InventoryService",
+    "description": "Service de gestion des stocks avec alertes et prévisions.",
+    "language": "Spring Boot",
+    "status": "new",
+    "createdAt": "2026-05-04T12:00:00Z",
+    "updatedAt": "2026-05-04T12:00:00Z",
+    "score": 0,
+    "diagramsCount": 0,
+    "violationsCount": 0,
+    "owner": "Alice Martin"
+  },
+  {
+    "id": "proj-5",
+    "name": "AuthGateway",
+    "description": "Service d'authentification centralisé avec OAuth2 et gestion des tokens.",
+    "language": "Spring Boot",
+    "status": "analyzed",
+    "createdAt": "2026-01-12T07:00:00Z",
+    "updatedAt": "2026-04-20T10:15:00Z",
+    "score": 91,
+    "diagramsCount": 2,
+    "violationsCount": 1,
+    "owner": "Thomas Dupont"
+  }
+]

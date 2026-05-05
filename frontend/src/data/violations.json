@@ -1,0 +1,132 @@
+[
+  {
+    "id": "viol-1",
+    "projectId": "proj-1",
+    "type": "SOLID",
+    "severity": "high",
+    "title": "Violation du principe de responsabilité unique (SRP)",
+    "description": "La classe OrderService gère à la fois la logique de commande, l'envoi d'e-mails et le calcul de TVA. Elle doit être découpée en services dédiés.",
+    "file": "com/ecommerce/order/OrderService.java",
+    "line": 45
+  },
+  {
+    "id": "viol-2",
+    "projectId": "proj-1",
+    "type": "DEPENDENCY",
+    "severity": "medium",
+    "title": "Dépendance circulaire détectée",
+    "description": "CartService → OrderService → CartService. Ce cycle de dépendances rend le code difficile à tester et à maintenir.",
+    "file": "com/ecommerce/cart/CartService.java",
+    "line": 12
+  },
+  {
+    "id": "viol-3",
+    "projectId": "proj-1",
+    "type": "PATTERN",
+    "severity": "low",
+    "title": "Anti-pattern : God Class",
+    "description": "ProductManager possède 42 méthodes et 18 attributs. Considérez la décomposition en sous-services spécialisés.",
+    "file": "com/ecommerce/catalog/ProductManager.java",
+    "line": 1
+  },
+  {
+    "id": "viol-4",
+    "projectId": "proj-1",
+    "type": "ARCHITECTURE",
+    "severity": "medium",
+    "title": "Accès direct à la couche de données depuis le contrôleur",
+    "description": "PaymentController accède directement au repository sans passer par la couche service, violant le pattern layered architecture.",
+    "file": "com/ecommerce/payment/PaymentController.java",
+    "line": 78
+  },
+  {
+    "id": "viol-5",
+    "projectId": "proj-2",
+    "type": "SOLID",
+    "severity": "critical",
+    "title": "Violation du principe ouvert/fermé (OCP)",
+    "description": "La méthode calculateFees() utilise une cascade de if/else pour chaque type de compte. L'ajout d'un nouveau type nécessite de modifier la méthode existante.",
+    "file": "com/banking/fee/FeeCalculator.java",
+    "line": 34
+  },
+  {
+    "id": "viol-6",
+    "projectId": "proj-2",
+    "type": "SOLID",
+    "severity": "critical",
+    "title": "Violation du principe de substitution de Liskov (LSP)",
+    "description": "PremiumAccount.withdraw() lève une exception non documentée dans la classe parente BankAccount, violant la substitution de Liskov.",
+    "file": "com/banking/account/PremiumAccount.java",
+    "line": 67
+  },
+  {
+    "id": "viol-7",
+    "projectId": "proj-2",
+    "type": "DEPENDENCY",
+    "severity": "high",
+    "title": "Fort couplage entre modules",
+    "description": "Le module Transaction dépend directement de 7 autres modules. Le couplage afférent dépasse le seuil recommandé de 3.",
+    "file": "com/banking/transaction/TransactionProcessor.java",
+    "line": 1
+  },
+  {
+    "id": "viol-8",
+    "projectId": "proj-2",
+    "type": "ARCHITECTURE",
+    "severity": "high",
+    "title": "Logique métier dans les entités JPA",
+    "description": "L'entité BankAccount contient des méthodes de calcul complexes. La logique métier doit résider dans la couche service.",
+    "file": "com/banking/account/BankAccount.java",
+    "line": 102
+  },
+  {
+    "id": "viol-9",
+    "projectId": "proj-2",
+    "type": "PATTERN",
+    "severity": "medium",
+    "title": "Anti-pattern : Lazy Class",
+    "description": "AccountValidator ne contient qu'une seule méthode validate() appelée une seule fois. Envisagez de fusionner avec AccountService.",
+    "file": "com/banking/account/AccountValidator.java",
+    "line": 1
+  },
+  {
+    "id": "viol-10",
+    "projectId": "proj-2",
+    "type": "SOLID",
+    "severity": "high",
+    "title": "Violation du principe d'inversion de dépendance (DIP)",
+    "description": "NotificationService dépend directement de EmailSender (classe concrète) au lieu d'une interface INotificationSender.",
+    "file": "com/banking/notification/NotificationService.java",
+    "line": 23
+  },
+  {
+    "id": "viol-11",
+    "projectId": "proj-2",
+    "type": "DEPENDENCY",
+    "severity": "medium",
+    "title": "Dépendance vers une couche supérieure",
+    "description": "La couche Repository importe des classes de la couche Controller, violant la règle de dépendance descendante.",
+    "file": "com/banking/repository/AccountRepository.java",
+    "line": 5
+  },
+  {
+    "id": "viol-12",
+    "projectId": "proj-2",
+    "type": "PATTERN",
+    "severity": "low",
+    "title": "Duplications de code entre SavingsAccount et CurrentAccount",
+    "description": "Les méthodes de validation de solde sont dupliquées dans les deux classes. Remontez-les dans BankAccount.",
+    "file": "com/banking/account/SavingsAccount.java",
+    "line": 88
+  },
+  {
+    "id": "viol-13",
+    "projectId": "proj-5",
+    "type": "ARCHITECTURE",
+    "severity": "low",
+    "title": "Token JWT sans expiration définie",
+    "description": "Les tokens générés par TokenService n'ont pas de durée d'expiration configurée explicitement dans les propriétés.",
+    "file": "com/auth/token/TokenService.java",
+    "line": 31
+  }
+]
