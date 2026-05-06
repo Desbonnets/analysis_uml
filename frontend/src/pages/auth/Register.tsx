@@ -2,14 +2,29 @@ import { useState } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
 import { UserPlus } from 'lucide-react'
 import Logo from '../../components/ui/Logo'
+import { register } from '../../api/auth'
+import { useAuth } from '../../context/AuthContext'
 
 export default function Register() {
   const [form, setForm] = useState({ name: '', email: '', password: '', role: 'developer' })
+  const [error, setError] = useState<string | null>(null)
+  const [loading, setLoading] = useState(false)
   const navigate = useNavigate()
+  const { saveAuth } = useAuth()
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
-    navigate('/dashboard')
+    setError(null)
+    setLoading(true)
+    try {
+      const res = await register(form)
+      saveAuth(res.token, res.user)
+      navigate('/dashboard')
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Erreur lors de la création du compte')
+    } finally {
+      setLoading(false)
+    }
   }
 
   const set = (field: string) => (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) =>
@@ -38,11 +53,11 @@ export default function Register() {
         <form onSubmit={handleSubmit} style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
           <div className="field">
             <label>Nom complet</label>
-            <input type="text" value={form.name} onChange={set('name')} placeholder="Jean Dupont" />
+            <input type="text" value={form.name} onChange={set('name')} placeholder="Jean Dupont" required />
           </div>
           <div className="field">
             <label>E-mail</label>
-            <input type="email" value={form.email} onChange={set('email')} placeholder="toi@exemple.com" />
+            <input type="email" value={form.email} onChange={set('email')} placeholder="toi@exemple.com" required />
           </div>
           <div className="field">
             <label>Rôle</label>
@@ -54,10 +69,15 @@ export default function Register() {
           </div>
           <div className="field">
             <label>Mot de passe</label>
-            <input type="password" value={form.password} onChange={set('password')} placeholder="Min. 8 caractères" />
+            <input type="password" value={form.password} onChange={set('password')} placeholder="Min. 8 caractères" required minLength={8} />
           </div>
-          <button type="submit" className="btn btn-primary" style={{ width: '100%', justifyContent: 'center' }}>
-            <UserPlus size={14} /> Créer mon compte
+
+          {error && (
+            <p style={{ fontSize: 12, color: 'var(--bad)', margin: 0 }}>{error}</p>
+          )}
+
+          <button type="submit" className="btn btn-primary" style={{ width: '100%', justifyContent: 'center' }} disabled={loading}>
+            <UserPlus size={14} /> {loading ? 'Création…' : 'Créer mon compte'}
           </button>
         </form>
 
