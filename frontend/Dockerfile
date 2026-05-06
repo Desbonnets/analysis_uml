@@ -1,11 +1,20 @@
-FROM node:22-alpine AS builder
+FROM node:24-alpine AS base
 WORKDIR /app
 COPY package*.json ./
 RUN npm ci
+
+# ── Dev stage: Vite dev server with HMR ──────────────────────────────
+FROM base AS dev
+COPY . .
+EXPOSE 5173
+CMD ["npx", "vite", "--host"]
+
+# ── Production stage: static build served by Nginx ───────────────────
+FROM base AS builder
 COPY . .
 RUN npm run build
 
-FROM nginx:alpine
+FROM nginx:alpine AS prod
 COPY --from=builder /app/dist /usr/share/nginx/html
 COPY nginx.conf /etc/nginx/conf.d/default.conf
 EXPOSE 80
