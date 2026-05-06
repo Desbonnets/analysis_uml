@@ -1,78 +1,56 @@
 import { NavLink } from 'react-router-dom'
-import {
-  LayoutDashboard, FolderOpen, GitBranch, BarChart2,
-  Sparkles, Settings, ChevronRight, Layers
-} from 'lucide-react'
+import { LayoutDashboard, FolderOpen, GitBranch, AlertTriangle, Sparkles, Settings, LogOut } from 'lucide-react'
+import Logo from '../ui/Logo'
+import Avatar from '../ui/Avatar'
 
 const nav = [
-  { to: '/dashboard', icon: LayoutDashboard, label: 'Dashboard' },
-  { to: '/projects', icon: FolderOpen, label: 'Projets' },
-  { to: '/diagrams', icon: GitBranch, label: 'Diagrammes' },
-  { to: '/analysis', icon: BarChart2, label: 'Analyse' },
-  { to: '/ai', icon: Sparkles, label: 'Assistant IA' },
+  { to: '/dashboard', icon: LayoutDashboard, label: 'Tableau de bord' },
+  { to: '/projects',  icon: FolderOpen,       label: 'Projets',          count: 12 },
+  { to: '/diagrams',  icon: GitBranch,         label: 'Canvas' },
+  { to: '/analysis',  icon: AlertTriangle,     label: 'Issues',           count: 7 },
+  { to: '/ai',        icon: Sparkles,          label: 'Assistant IA' },
 ]
 
 export default function Sidebar() {
   return (
-    <aside className="w-60 shrink-0 bg-[#12141c] border-r border-[#1e2235] flex flex-col h-screen sticky top-0">
-      {/* Logo */}
-      <div className="flex items-center gap-2.5 px-5 py-5 border-b border-[#1e2235]">
-        <div className="w-8 h-8 rounded-lg bg-violet-600 flex items-center justify-center">
-          <Layers size={16} className="text-white" />
-        </div>
-        <span className="text-white font-semibold text-sm tracking-wide">ArchitectAI</span>
+    <aside className="sidebar">
+      <div className="brand">
+        <Logo size={22} />
+        <span className="name">UML Analysis</span>
       </div>
 
-      {/* Navigation */}
-      <nav className="flex-1 px-3 py-4 space-y-0.5">
-        {nav.map(({ to, icon: Icon, label }) => (
-          <NavLink
-            key={to}
-            to={to}
-            className={({ isActive }) =>
-              `flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm transition-all group ${
-                isActive
-                  ? 'bg-violet-600/20 text-violet-300 font-medium'
-                  : 'text-slate-400 hover:text-slate-200 hover:bg-white/5'
-              }`
-            }
-          >
-            {({ isActive }) => (
-              <>
-                <Icon size={16} className={isActive ? 'text-violet-400' : 'text-slate-500 group-hover:text-slate-300'} />
-                <span>{label}</span>
-                {isActive && <ChevronRight size={13} className="ml-auto text-violet-400" />}
-              </>
-            )}
-          </NavLink>
-        ))}
-      </nav>
+      <div className="label">Espace</div>
 
-      {/* Bottom */}
-      <div className="px-3 pb-4 border-t border-[#1e2235] pt-4 space-y-0.5">
+      {nav.map(({ to, icon: Icon, label, count }) => (
+        <NavLink
+          key={to}
+          to={to}
+          className={({ isActive }) => `sb-item${isActive ? ' active' : ''}`}
+        >
+          <Icon size={16} className="icon" />
+          <span>{label}</span>
+          {count != null && <span className="count">{count}</span>}
+        </NavLink>
+      ))}
+
+      <div className="footer">
         <NavLink
           to="/settings"
-          className={({ isActive }) =>
-            `flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm transition-all group ${
-              isActive
-                ? 'bg-violet-600/20 text-violet-300 font-medium'
-                : 'text-slate-400 hover:text-slate-200 hover:bg-white/5'
-            }`
-          }
+          className={({ isActive }) => `sb-item${isActive ? ' active' : ''}`}
         >
-          <Settings size={16} className="text-slate-500 group-hover:text-slate-300" />
+          <Settings size={16} className="icon" />
           <span>Paramètres</span>
         </NavLink>
 
-        {/* User avatar */}
-        <div className="flex items-center gap-3 px-3 py-2.5 mt-2 rounded-lg bg-white/5">
-          <div className="w-7 h-7 rounded-full bg-violet-600 flex items-center justify-center text-xs text-white font-semibold">
-            AM
+        <div style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '8px 10px', background: 'var(--bg-2)', borderRadius: 6, marginTop: 2 }}>
+          <Avatar initials="AM" color="var(--accent)" size={26} />
+          <div style={{ flex: 1, minWidth: 0 }}>
+            <div style={{ fontSize: 12, fontWeight: 600, color: 'var(--fg-0)', lineHeight: 1.3, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+              Alice Martin
+            </div>
+            <div style={{ fontSize: 10, color: 'var(--accent)' }}>Pro</div>
           </div>
-          <div className="flex-1 min-w-0">
-            <p className="text-xs text-slate-200 font-medium truncate">Alice Martin</p>
-            <p className="text-[10px] text-violet-400 font-medium">Pro</p>
-          </div>
+          <LogOut size={14} style={{ color: 'var(--fg-2)', flexShrink: 0 }} />
         </div>
       </div>
     </aside>

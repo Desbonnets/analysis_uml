@@ -9,28 +9,39 @@ interface StatCardProps {
   color?: 'purple' | 'emerald' | 'amber' | 'sky'
 }
 
-const colors = {
-  purple: 'bg-violet-500/15 text-violet-400',
-  emerald: 'bg-emerald-500/15 text-emerald-400',
-  amber: 'bg-amber-500/15 text-amber-400',
-  sky: 'bg-sky-500/15 text-sky-400',
+const iconColor: Record<string, string> = {
+  purple:  'var(--accent)',
+  emerald: 'var(--ok)',
+  amber:   'var(--warn)',
+  sky:     'var(--info)',
+}
+
+const iconBg: Record<string, string> = {
+  purple:  'var(--accent-soft)',
+  emerald: 'var(--ok-soft)',
+  amber:   'var(--warn-soft)',
+  sky:     'var(--info-soft)',
 }
 
 export default function StatCard({ label, value, icon: Icon, trend, trendUp, color = 'purple' }: StatCardProps) {
   return (
-    <div className="bg-[#12141c] border border-[#1e2235] rounded-xl p-5">
-      <div className="flex items-start justify-between">
+    <div className="card">
+      <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between' }}>
         <div>
-          <p className="text-slate-400 text-xs font-medium mb-2">{label}</p>
-          <p className="text-white text-2xl font-bold">{value}</p>
+          <p style={{ color: 'var(--fg-2)', fontSize: 11, fontWeight: 600, letterSpacing: '0.06em', textTransform: 'uppercase', marginBottom: 8, margin: '0 0 8px' }}>
+            {label}
+          </p>
+          <p className="mono tabular" style={{ color: 'var(--fg-0)', fontSize: 28, fontWeight: 700, lineHeight: 1, margin: 0 }}>
+            {value}
+          </p>
           {trend && (
-            <p className={`text-xs mt-1 ${trendUp ? 'text-emerald-400' : 'text-red-400'}`}>
+            <p style={{ fontSize: 11, marginTop: 6, color: trendUp ? 'var(--ok)' : 'var(--bad)', margin: '6px 0 0' }}>
               {trendUp ? '↑' : '↓'} {trend}
             </p>
           )}
         </div>
-        <div className={`w-10 h-10 rounded-lg flex items-center justify-center ${colors[color]}`}>
-          <Icon size={18} />
+        <div style={{ width: 36, height: 36, borderRadius: 8, background: iconBg[color], display: 'flex', alignItems: 'center', justifyContent: 'center', color: iconColor[color], flexShrink: 0 }}>
+          <Icon size={17} />
         </div>
       </div>
     </div>
