@@ -1,6 +1,7 @@
 import { useState } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
-import { Layers } from 'lucide-react'
+import { UserPlus } from 'lucide-react'
+import Logo from '../../components/ui/Logo'
 
 export default function Register() {
   const [form, setForm] = useState({ name: '', email: '', password: '', role: 'developer' })
@@ -15,81 +16,57 @@ export default function Register() {
     setForm(f => ({ ...f, [field]: e.target.value }))
 
   return (
-    <div className="min-h-screen bg-[#0d0f17] flex items-center justify-center px-4">
-      <div className="w-full max-w-md">
-        <div className="flex items-center justify-center gap-2.5 mb-8">
-          <div className="w-10 h-10 rounded-xl bg-violet-600 flex items-center justify-center">
-            <Layers size={20} className="text-white" />
+    <div className="login-wrap">
+      <div className="login-card">
+        <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginBottom: 24 }}>
+          <Logo size={32} />
+          <div>
+            <div style={{ fontWeight: 700, fontSize: 16, letterSpacing: '-0.01em', color: 'var(--fg-0)' }}>
+              UML Analysis
+            </div>
+            <div style={{ fontSize: 11, color: 'var(--fg-2)' }}>Plateforme d'architecture</div>
           </div>
-          <span className="text-white font-bold text-xl">ArchitectAI</span>
         </div>
 
-        <div className="bg-[#12141c] border border-[#1e2235] rounded-2xl p-8">
-          <h2 className="text-white text-xl font-semibold mb-1">Créer un compte</h2>
-          <p className="text-slate-400 text-sm mb-6">Commencez à analyser votre architecture</p>
+        <h1 style={{ fontSize: 22, fontWeight: 700, letterSpacing: '-0.01em', margin: '0 0 6px', color: 'var(--fg-0)' }}>
+          Créer un espace.
+        </h1>
+        <p style={{ fontSize: 13, color: 'var(--fg-1)', margin: '0 0 24px' }}>
+          Commence à analyser ton architecture dès maintenant.
+        </p>
 
-          <form onSubmit={handleSubmit} className="space-y-4">
-            <div>
-              <label className="block text-xs font-medium text-slate-400 mb-1.5">Nom complet</label>
-              <input
-                type="text"
-                value={form.name}
-                onChange={set('name')}
-                className="w-full bg-[#0d0f17] border border-[#2a2d3e] rounded-lg px-4 py-2.5 text-sm text-slate-200 placeholder-slate-600 outline-none focus:border-violet-500 transition-colors"
-                placeholder="Jean Dupont"
-              />
-            </div>
+        <form onSubmit={handleSubmit} style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
+          <div className="field">
+            <label>Nom complet</label>
+            <input type="text" value={form.name} onChange={set('name')} placeholder="Jean Dupont" />
+          </div>
+          <div className="field">
+            <label>E-mail</label>
+            <input type="email" value={form.email} onChange={set('email')} placeholder="toi@exemple.com" />
+          </div>
+          <div className="field">
+            <label>Rôle</label>
+            <select value={form.role} onChange={set('role')}>
+              <option value="developer">Développeur</option>
+              <option value="architect">Architecte logiciel</option>
+              <option value="admin">Chef de projet / Admin</option>
+            </select>
+          </div>
+          <div className="field">
+            <label>Mot de passe</label>
+            <input type="password" value={form.password} onChange={set('password')} placeholder="Min. 8 caractères" />
+          </div>
+          <button type="submit" className="btn btn-primary" style={{ width: '100%', justifyContent: 'center' }}>
+            <UserPlus size={14} /> Créer mon compte
+          </button>
+        </form>
 
-            <div>
-              <label className="block text-xs font-medium text-slate-400 mb-1.5">Adresse e-mail</label>
-              <input
-                type="email"
-                value={form.email}
-                onChange={set('email')}
-                className="w-full bg-[#0d0f17] border border-[#2a2d3e] rounded-lg px-4 py-2.5 text-sm text-slate-200 placeholder-slate-600 outline-none focus:border-violet-500 transition-colors"
-                placeholder="vous@exemple.com"
-              />
-            </div>
-
-            <div>
-              <label className="block text-xs font-medium text-slate-400 mb-1.5">Rôle</label>
-              <select
-                value={form.role}
-                onChange={set('role')}
-                className="w-full bg-[#0d0f17] border border-[#2a2d3e] rounded-lg px-4 py-2.5 text-sm text-slate-200 outline-none focus:border-violet-500 transition-colors"
-              >
-                <option value="developer">Développeur</option>
-                <option value="architect">Architecte logiciel</option>
-                <option value="admin">Chef de projet / Admin</option>
-              </select>
-            </div>
-
-            <div>
-              <label className="block text-xs font-medium text-slate-400 mb-1.5">Mot de passe</label>
-              <input
-                type="password"
-                value={form.password}
-                onChange={set('password')}
-                className="w-full bg-[#0d0f17] border border-[#2a2d3e] rounded-lg px-4 py-2.5 text-sm text-slate-200 placeholder-slate-600 outline-none focus:border-violet-500 transition-colors"
-                placeholder="Min. 8 caractères"
-              />
-            </div>
-
-            <button
-              type="submit"
-              className="w-full bg-violet-600 hover:bg-violet-500 text-white font-medium py-2.5 rounded-lg text-sm transition-colors mt-2"
-            >
-              Créer mon compte
-            </button>
-          </form>
-
-          <p className="text-center text-sm text-slate-500 mt-6">
-            Déjà un compte ?{' '}
-            <Link to="/login" className="text-violet-400 hover:text-violet-300">
-              Se connecter
-            </Link>
-          </p>
-        </div>
+        <p style={{ fontSize: 11, color: 'var(--fg-2)', margin: '20px 0 0', textAlign: 'center' }}>
+          Déjà un compte ?{' '}
+          <Link to="/login" style={{ color: 'var(--accent)', textDecoration: 'none' }}>
+            Se connecter
+          </Link>
+        </p>
       </div>
     </div>
   )

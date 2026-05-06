@@ -1,11 +1,11 @@
 import { useState } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
-import { Layers, Eye, EyeOff } from 'lucide-react'
+import { LogIn, GitBranch } from 'lucide-react'
+import Logo from '../../components/ui/Logo'
 
 export default function Login() {
-  const [showPassword, setShowPassword] = useState(false)
-  const [email, setEmail] = useState('alice.martin@example.com')
-  const [password, setPassword] = useState('password123')
+  const [email, setEmail] = useState('claire@umla.io')
+  const [password, setPassword] = useState('')
   const navigate = useNavigate()
 
   const handleSubmit = (e: React.FormEvent) => {
@@ -14,75 +14,67 @@ export default function Login() {
   }
 
   return (
-    <div className="min-h-screen bg-[#0d0f17] flex items-center justify-center px-4">
-      <div className="w-full max-w-md">
-        {/* Logo */}
-        <div className="flex items-center justify-center gap-2.5 mb-8">
-          <div className="w-10 h-10 rounded-xl bg-violet-600 flex items-center justify-center">
-            <Layers size={20} className="text-white" />
+    <div className="login-wrap">
+      <div className="login-card">
+        <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginBottom: 24 }}>
+          <Logo size={32} />
+          <div>
+            <div style={{ fontWeight: 700, fontSize: 16, letterSpacing: '-0.01em', color: 'var(--fg-0)' }}>
+              UML Analysis
+            </div>
+            <div style={{ fontSize: 11, color: 'var(--fg-2)' }}>Plateforme d'architecture</div>
           </div>
-          <span className="text-white font-bold text-xl">ArchitectAI</span>
         </div>
 
-        <div className="bg-[#12141c] border border-[#1e2235] rounded-2xl p-8">
-          <h2 className="text-white text-xl font-semibold mb-1">Connexion</h2>
-          <p className="text-slate-400 text-sm mb-6">Accédez à votre espace de travail</p>
+        <h1 style={{ fontSize: 22, fontWeight: 700, letterSpacing: '-0.01em', margin: '0 0 6px', color: 'var(--fg-0)' }}>
+          Bon retour.
+        </h1>
+        <p style={{ fontSize: 13, color: 'var(--fg-1)', margin: '0 0 24px' }}>
+          Connecte-toi pour reprendre tes analyses.
+        </p>
 
-          <form onSubmit={handleSubmit} className="space-y-4">
-            <div>
-              <label className="block text-xs font-medium text-slate-400 mb-1.5">Adresse e-mail</label>
-              <input
-                type="email"
-                value={email}
-                onChange={e => setEmail(e.target.value)}
-                className="w-full bg-[#0d0f17] border border-[#2a2d3e] rounded-lg px-4 py-2.5 text-sm text-slate-200 placeholder-slate-600 outline-none focus:border-violet-500 transition-colors"
-                placeholder="vous@exemple.com"
-              />
-            </div>
+        <form onSubmit={handleSubmit} style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
+          <div className="field">
+            <label>E-mail</label>
+            <input
+              type="email"
+              value={email}
+              onChange={e => setEmail(e.target.value)}
+              placeholder="toi@exemple.com"
+            />
+          </div>
+          <div className="field">
+            <label>Mot de passe</label>
+            <input
+              type="password"
+              value={password}
+              onChange={e => setPassword(e.target.value)}
+              placeholder="••••••••"
+            />
+            <a href="#" style={{ fontSize: 11, color: 'var(--accent)', textDecoration: 'none', alignSelf: 'flex-end' }}>
+              Mot de passe oublié ?
+            </a>
+          </div>
+          <button type="submit" className="btn btn-primary" style={{ width: '100%', justifyContent: 'center' }}>
+            <LogIn size={14} /> Se connecter
+          </button>
+        </form>
 
-            <div>
-              <div className="flex items-center justify-between mb-1.5">
-                <label className="block text-xs font-medium text-slate-400">Mot de passe</label>
-                <Link to="/forgot-password" className="text-xs text-violet-400 hover:text-violet-300">
-                  Mot de passe oublié ?
-                </Link>
-              </div>
-              <div className="relative">
-                <input
-                  type={showPassword ? 'text' : 'password'}
-                  value={password}
-                  onChange={e => setPassword(e.target.value)}
-                  className="w-full bg-[#0d0f17] border border-[#2a2d3e] rounded-lg px-4 py-2.5 text-sm text-slate-200 placeholder-slate-600 outline-none focus:border-violet-500 transition-colors pr-10"
-                  placeholder="••••••••"
-                />
-                <button
-                  type="button"
-                  onClick={() => setShowPassword(!showPassword)}
-                  className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-500 hover:text-slate-300"
-                >
-                  {showPassword ? <EyeOff size={15} /> : <Eye size={15} />}
-                </button>
-              </div>
-            </div>
-
-            <button
-              type="submit"
-              className="w-full bg-violet-600 hover:bg-violet-500 text-white font-medium py-2.5 rounded-lg text-sm transition-colors mt-2"
-            >
-              Se connecter
-            </button>
-          </form>
-
-          <p className="text-center text-sm text-slate-500 mt-6">
-            Pas encore de compte ?{' '}
-            <Link to="/register" className="text-violet-400 hover:text-violet-300">
-              Créer un compte
-            </Link>
-          </p>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 12, margin: '20px 0', color: 'var(--fg-2)', fontSize: 11 }}>
+          <div style={{ flex: 1, height: 1, background: 'var(--line-1)' }} />
+          <span>OU</span>
+          <div style={{ flex: 1, height: 1, background: 'var(--line-1)' }} />
         </div>
 
-        <p className="text-center text-xs text-slate-600 mt-6">
-          © 2026 ArchitectAI — Plateforme UML & Analyse d'Architecture
+        <button className="btn btn-secondary" style={{ width: '100%', justifyContent: 'center' }}>
+          <GitBranch size={14} /> Continuer avec GitHub
+        </button>
+
+        <p style={{ fontSize: 11, color: 'var(--fg-2)', margin: '20px 0 0', textAlign: 'center' }}>
+          Pas encore de compte ?{' '}
+          <Link to="/register" style={{ color: 'var(--accent)', textDecoration: 'none' }}>
+            Créer un espace
+          </Link>
         </p>
       </div>
     </div>

@@ -1,69 +1,73 @@
 import { Link } from 'react-router-dom'
 import { GitBranch, Plus } from 'lucide-react'
 import Header from '../components/layout/Header'
-import Badge from '../components/ui/Badge'
+import Pill from '../components/ui/Pill'
 import diagramsData from '../data/diagrams.json'
 import projectsData from '../data/projects.json'
 import type { Diagram, Project } from '../types'
 
 const diagrams = diagramsData as Diagram[]
-const projects = projectsData as Project[]
+const projects  = projectsData as Project[]
 
-const typeVariant: Record<string, 'info' | 'purple' | 'success' | 'warning'> = {
-  class: 'info', dependency: 'purple', package: 'success', sequence: 'warning',
+const typeTone: Record<string, 'info' | 'ok' | 'warn' | 'neutral'> = {
+  class: 'info', dependency: 'neutral', package: 'ok', sequence: 'warn',
 }
 
 export default function DiagramsList() {
   return (
-    <div className="flex flex-col min-h-screen">
-      <Header title="Diagrammes UML" subtitle="Visualisez et éditez vos diagrammes d'architecture" />
-
-      <div className="flex-1 px-8 py-6">
-        <div className="flex justify-end mb-6">
-          <button className="flex items-center gap-2 px-4 py-2 rounded-lg bg-violet-600 hover:bg-violet-500 text-white text-sm font-medium transition-colors">
-            <Plus size={14} />
-            Nouveau diagramme
+    <div>
+      <Header
+        title="Canvas UML"
+        actions={
+          <button className="btn btn-primary">
+            <Plus size={14} /> Nouveau diagramme
           </button>
-        </div>
+        }
+      />
 
-        <div className="grid grid-cols-3 gap-4">
+      <div className="page">
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 14 }}>
           {diagrams.map(diagram => {
             const project = projects.find(p => p.id === diagram.projectId)
             return (
-              <Link
-                key={diagram.id}
-                to={`/diagrams/${diagram.id}`}
-                className="bg-[#12141c] border border-[#1e2235] rounded-xl overflow-hidden hover:border-violet-600/30 transition-all group"
-              >
-                {/* Preview */}
-                <div className="h-36 bg-[#0a0c12] flex items-center justify-center relative overflow-hidden"
-                  style={{ backgroundImage: 'radial-gradient(circle, #1e2235 1px, transparent 1px)', backgroundSize: '20px 20px' }}>
-                  <div className="flex gap-2 scale-75 opacity-60 group-hover:opacity-80 transition-opacity">
-                    {diagram.classes.slice(0, 3).map((cls, i) => (
-                      <div key={cls.id} className="bg-[#1a1d2e] border border-[#2a2d3e] rounded-lg p-2 w-20" style={{ transform: `rotate(${(i - 1) * 3}deg)` }}>
-                        <div className="bg-[#1e2235] rounded px-1 py-0.5 text-[7px] text-violet-300 font-mono mb-1 text-center">{cls.name}</div>
-                        <div className="space-y-0.5">
-                          {cls.attributes.slice(0, 2).map((_a, j) => (
-                            <div key={j} className="h-1 bg-slate-700 rounded" />
-                          ))}
+              <Link key={diagram.id} to={`/diagrams/${diagram.id}`} style={{ textDecoration: 'none' }}>
+                <div
+                  className="card"
+                  style={{ padding: 0, overflow: 'hidden', cursor: 'pointer', transition: 'border-color 120ms' }}
+                  onMouseEnter={e => (e.currentTarget as HTMLElement).style.borderColor = 'var(--line-3)'}
+                  onMouseLeave={e => (e.currentTarget as HTMLElement).style.borderColor = 'var(--line-1)'}
+                >
+                  {/* Aperçu canvas */}
+                  <div className="canvas-bg" style={{ height: 140, display: 'flex', alignItems: 'center', justifyContent: 'center', overflow: 'hidden' }}>
+                    <div style={{ display: 'flex', gap: 8, transform: 'scale(0.75)', opacity: 0.7 }}>
+                      {diagram.classes.slice(0, 3).map((cls, i) => (
+                        <div key={cls.id} style={{ background: 'var(--bg-1)', border: '1px solid var(--line-2)', borderRadius: 6, padding: '6px 10px', width: 80, transform: `rotate(${(i - 1) * 3}deg)` }}>
+                          <div className="mono" style={{ fontSize: 7, color: 'var(--accent)', fontWeight: 600, marginBottom: 4, textAlign: 'center', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+                            {cls.name}
+                          </div>
+                          <div style={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
+                            {cls.attributes.slice(0, 2).map((_a, j) => (
+                              <div key={j} style={{ height: 3, background: 'var(--bg-3)', borderRadius: 2 }} />
+                            ))}
+                          </div>
                         </div>
-                      </div>
-                    ))}
+                      ))}
+                    </div>
                   </div>
-                </div>
 
-                <div className="p-4">
-                  <div className="flex items-start justify-between mb-1">
-                    <h3 className="text-slate-100 text-sm font-semibold group-hover:text-white leading-tight">{diagram.name}</h3>
-                    <Badge label={diagram.type} variant={typeVariant[diagram.type]} />
-                  </div>
-                  <p className="text-slate-500 text-xs mb-3">{project?.name}</p>
-                  <div className="flex items-center justify-between text-xs text-slate-600">
-                    <span className="flex items-center gap-1">
-                      <GitBranch size={11} />
-                      {diagram.classes.length} classes
-                    </span>
-                    <span>{new Date(diagram.updatedAt).toLocaleDateString('fr-FR')}</span>
+                  <div style={{ padding: 14 }}>
+                    <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', marginBottom: 4 }}>
+                      <h3 style={{ fontSize: 13, fontWeight: 600, color: 'var(--fg-0)', margin: 0, lineHeight: 1.3 }}>{diagram.name}</h3>
+                      <Pill tone={typeTone[diagram.type]} square>{diagram.type}</Pill>
+                    </div>
+                    <p style={{ fontSize: 12, color: 'var(--fg-2)', margin: '0 0 10px' }}>{project?.name}</p>
+                    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', fontSize: 11, color: 'var(--fg-2)' }}>
+                      <span style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
+                        <GitBranch size={11} />
+                        {diagram.classes.length} classes
+                      </span>
+                      <span>{new Date(diagram.updatedAt).toLocaleDateString('fr-FR')}</span>
+                    </div>
                   </div>
                 </div>
               </Link>

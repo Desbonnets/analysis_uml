@@ -1,115 +1,138 @@
-import { FolderOpen, GitBranch, AlertTriangle, TrendingUp, Clock, CheckCircle2 } from 'lucide-react'
 import { Link } from 'react-router-dom'
+import { FolderOpen, RefreshCw, Upload } from 'lucide-react'
 import Header from '../components/layout/Header'
-import StatCard from '../components/ui/StatCard'
-import Badge from '../components/ui/Badge'
+import MetricCard from '../components/ui/MetricCard'
+import Avatar from '../components/ui/Avatar'
+import Pill from '../components/ui/Pill'
 import projects from '../data/projects.json'
 import violations from '../data/violations.json'
 
-const recentActivity = [
-  { icon: '🔍', text: 'Analyse terminée sur', target: 'EcommerceApp', time: 'Il y a 2h', color: 'text-violet-400' },
-  { icon: '⚠️', text: '3 violations détectées dans', target: 'BankingSystem', time: 'Il y a 5h', color: 'text-amber-400' },
-  { icon: '📊', text: 'Nouveau diagramme créé sur', target: 'EcommerceApp', time: 'Hier', color: 'text-sky-400' },
-  { icon: '✅', text: 'Violation corrigée dans', target: 'AuthGateway', time: 'Hier', color: 'text-emerald-400' },
-  { icon: '🤖', text: 'Rapport IA généré pour', target: 'BankingSystem', time: 'Il y a 2j', color: 'text-violet-400' },
+const scoreColor = (s: number) => s >= 80 ? 'var(--ok)' : s >= 60 ? 'var(--warn)' : 'var(--bad)'
+
+const langShort: Record<string, string> = {
+  'Spring Boot': 'java', 'Symfony': 'php', 'Laravel': 'php', 'Node.js': 'ts',
+}
+
+const activity = [
+  { initials: 'MR', color: '#FF7A59', who: 'Marie R.',  what: 'a poussé un commit',   target: 'auth-gateway',      ago: '4 min' },
+  { initials: 'CL', color: '#5BC0BE', who: 'Claire L.', what: 'a commenté',            target: 'PaymentController', ago: '12 min' },
+  { initials: 'CI', color: '#A78BFA', who: 'Job CI',    what: 'analyse terminée',      target: 'checkout-service',  ago: '1 h' },
+  { initials: 'SK', color: '#3FB984', who: 'Sam K.',    what: 'a résolu une issue',    target: 'storefront-web',    ago: '3 h' },
 ]
 
-const scoreColor = (s: number) => s >= 80 ? 'text-emerald-400' : s >= 60 ? 'text-amber-400' : 'text-red-400'
-const scoreBg = (s: number) => s >= 80 ? 'bg-emerald-500' : s >= 60 ? 'bg-amber-500' : 'bg-red-500'
-
 export default function Dashboard() {
-  const analyzed = projects.filter(p => p.status === 'analyzed')
+  const analyzed      = projects.filter(p => p.status === 'analyzed')
+  const avgScore      = Math.round(analyzed.reduce((a, p) => a + p.score, 0) / analyzed.length)
   const totalViolations = violations.length
-  const avgScore = Math.round(analyzed.reduce((a, p) => a + p.score, 0) / analyzed.length)
+  const totalDiagrams   = projects.reduce((a, p) => a + p.diagramsCount, 0)
 
   return (
-    <div className="flex flex-col min-h-screen">
-      <Header title="Dashboard" subtitle="Vue d'ensemble de vos projets et analyses" />
+    <div>
+      <Header
+        title="Tableau de bord"
+        actions={
+          <div style={{ display: 'flex', gap: 8 }}>
+            <button className="btn btn-secondary"><RefreshCw size={14} /> Actualiser</button>
+            <button className="btn btn-primary"><Upload size={14} /> Importer un dépôt</button>
+          </div>
+        }
+      />
 
-      <div className="flex-1 px-8 py-6 space-y-6">
-        {/* Stats */}
-        <div className="grid grid-cols-4 gap-4">
-          <StatCard label="Projets analysés" value={analyzed.length} icon={FolderOpen} trend="+2 ce mois" trendUp color="purple" />
-          <StatCard label="Diagrammes UML" value={10} icon={GitBranch} trend="+5 ce mois" trendUp color="sky" />
-          <StatCard label="Violations actives" value={totalViolations} icon={AlertTriangle} trend="-3 cette semaine" trendUp={false} color="amber" />
-          <StatCard label="Score moyen" value={`${avgScore}/100`} icon={TrendingUp} trend="+4 pts" trendUp color="emerald" />
+      <div className="page">
+        {/* Métriques */}
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: 14, marginBottom: 28 }}>
+          <MetricCard
+            label="Projets analysés"
+            value={analyzed.length}
+            delta="+2"
+            sparkPoints="0,22 14,18 28,16 42,14 56,12 70,10 84,8 100,6"
+          />
+          <MetricCard
+            label="Diagrammes UML"
+            value={totalDiagrams}
+            delta="+5"
+            sparkPoints="0,20 14,16 28,14 42,12 56,10 70,8 84,6 100,4"
+          />
+          <MetricCard
+            label="Violations actives"
+            value={totalViolations}
+            delta="-3"
+            deltaTone="ok"
+            sparkColor="var(--ok)"
+            sparkPoints="0,6 14,10 28,14 42,16 56,18 70,20 84,22 100,24"
+          />
+          <MetricCard
+            label="Score moyen"
+            value={`${avgScore}/100`}
+            delta="+4 pts"
+            sparkPoints="0,18 14,16 28,14 42,12 56,10 70,8 84,6 100,4"
+          />
         </div>
 
-        <div className="grid grid-cols-3 gap-6">
-          {/* Projets récents */}
-          <div className="col-span-2 bg-[#12141c] border border-[#1e2235] rounded-xl p-5">
-            <div className="flex items-center justify-between mb-4">
-              <h3 className="text-white font-semibold text-sm">Projets récents</h3>
-              <Link to="/projects" className="text-violet-400 hover:text-violet-300 text-xs">Voir tout →</Link>
+        <div style={{ display: 'grid', gridTemplateColumns: '2fr 1fr', gap: 20 }}>
+          {/* Tableau projets */}
+          <div className="card" style={{ padding: 0 }}>
+            <div style={{ padding: '14px 18px', borderBottom: '1px solid var(--line-1)', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+              <h3 style={{ margin: 0, fontSize: 14, fontWeight: 600, color: 'var(--fg-0)' }}>Projets récents</h3>
+              <Link to="/projects" style={{ fontSize: 12, color: 'var(--accent)', textDecoration: 'none' }}>
+                Tout voir →
+              </Link>
             </div>
-
-            <div className="space-y-2">
-              {projects.slice(0, 4).map(project => (
-                <Link key={project.id} to={`/projects/${project.id}`}
-                  className="flex items-center gap-4 p-3 rounded-lg hover:bg-white/5 transition-colors group">
-                  <div className="w-9 h-9 rounded-lg bg-violet-600/20 flex items-center justify-center text-violet-400 shrink-0">
-                    <FolderOpen size={15} />
-                  </div>
-                  <div className="flex-1 min-w-0">
-                    <div className="flex items-center gap-2">
-                      <p className="text-slate-200 text-sm font-medium group-hover:text-white">{project.name}</p>
-                      <Badge
-                        label={project.status === 'analyzed' ? 'Analysé' : project.status === 'pending' ? 'En cours' : project.status === 'new' ? 'Nouveau' : 'Erreur'}
-                        variant={project.status === 'analyzed' ? 'success' : project.status === 'pending' ? 'warning' : 'neutral'}
-                      />
-                    </div>
-                    <p className="text-slate-500 text-xs mt-0.5">{project.language}</p>
-                  </div>
-                  {project.score > 0 && (
-                    <div className="text-right shrink-0">
-                      <span className={`text-sm font-bold ${scoreColor(project.score)}`}>{project.score}</span>
-                      <span className="text-slate-600 text-xs">/100</span>
-                    </div>
-                  )}
-                </Link>
-              ))}
-            </div>
+            <table className="table">
+              <thead>
+                <tr>
+                  <th>Projet</th>
+                  <th>Lang</th>
+                  <th>Diagrammes</th>
+                  <th>Violations</th>
+                  <th>Score</th>
+                </tr>
+              </thead>
+              <tbody>
+                {projects.slice(0, 5).map(p => (
+                  <tr key={p.id}>
+                    <td>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+                        <FolderOpen size={14} style={{ color: 'var(--fg-2)' }} />
+                        <Link to={`/projects/${p.id}`} style={{ fontWeight: 500, color: 'var(--fg-0)', textDecoration: 'none' }}>
+                          {p.name}
+                        </Link>
+                      </div>
+                    </td>
+                    <td><Pill tone="neutral" square>{langShort[p.language] ?? p.language}</Pill></td>
+                    <td className="num">{p.diagramsCount}</td>
+                    <td>
+                      {p.violationsCount === 0
+                        ? <Pill tone="ok" square>0</Pill>
+                        : <Pill tone="warn" square>{p.violationsCount}</Pill>}
+                    </td>
+                    <td>
+                      {p.score > 0
+                        ? <span className="num" style={{ color: scoreColor(p.score), fontWeight: 600 }}>{p.score}</span>
+                        : <span className="dim">—</span>}
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
           </div>
 
-          {/* Activité récente */}
-          <div className="bg-[#12141c] border border-[#1e2235] rounded-xl p-5">
-            <h3 className="text-white font-semibold text-sm mb-4">Activité récente</h3>
-            <div className="space-y-3">
-              {recentActivity.map((a, i) => (
-                <div key={i} className="flex items-start gap-3">
-                  <span className="text-base mt-0.5">{a.icon}</span>
-                  <div className="flex-1 min-w-0">
-                    <p className="text-xs text-slate-400 leading-relaxed">
-                      {a.text} <span className={`font-medium ${a.color}`}>{a.target}</span>
-                    </p>
-                    <div className="flex items-center gap-1 mt-0.5">
-                      <Clock size={10} className="text-slate-600" />
-                      <span className="text-[10px] text-slate-600">{a.time}</span>
-                    </div>
-                  </div>
-                </div>
-              ))}
+          {/* Activité */}
+          <div className="card" style={{ padding: 0 }}>
+            <div style={{ padding: '14px 18px', borderBottom: '1px solid var(--line-1)' }}>
+              <h3 style={{ margin: 0, fontSize: 14, fontWeight: 600, color: 'var(--fg-0)' }}>Activité</h3>
             </div>
-          </div>
-        </div>
-
-        {/* Score par projet */}
-        <div className="bg-[#12141c] border border-[#1e2235] rounded-xl p-5">
-          <h3 className="text-white font-semibold text-sm mb-4">Score d'architecture par projet</h3>
-          <div className="space-y-3">
-            {projects.filter(p => p.score > 0).map(project => (
-              <div key={project.id} className="flex items-center gap-4">
-                <span className="text-slate-300 text-xs w-32 truncate">{project.name}</span>
-                <div className="flex-1 bg-[#1e2235] rounded-full h-2">
-                  <div
-                    className={`h-2 rounded-full transition-all ${scoreBg(project.score)}`}
-                    style={{ width: `${project.score}%` }}
-                  />
+            {activity.map((a, i) => (
+              <div key={i} style={{ display: 'flex', gap: 10, padding: '12px 18px', borderBottom: i < activity.length - 1 ? '1px solid var(--line-1)' : 'none' }}>
+                <Avatar initials={a.initials} color={a.color} size={28} />
+                <div style={{ flex: 1, fontSize: 12 }}>
+                  <div style={{ color: 'var(--fg-0)' }}>
+                    <span style={{ fontWeight: 600 }}>{a.who}</span>{' '}
+                    <span style={{ color: 'var(--fg-1)' }}>{a.what}</span>
+                  </div>
+                  <div className="mono" style={{ color: 'var(--fg-1)', fontSize: 11, marginTop: 2 }}>{a.target}</div>
                 </div>
-                <div className="flex items-center gap-1.5 w-16 justify-end">
-                  <CheckCircle2 size={12} className={scoreColor(project.score)} />
-                  <span className={`text-xs font-semibold ${scoreColor(project.score)}`}>{project.score}/100</span>
-                </div>
+                <span style={{ fontSize: 11, color: 'var(--fg-2)', flexShrink: 0 }}>{a.ago}</span>
               </div>
             ))}
           </div>
