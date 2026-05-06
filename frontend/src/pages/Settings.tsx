@@ -1,44 +1,60 @@
 import { useState } from 'react'
-import { User, Bell, Shield, CreditCard, Check } from 'lucide-react'
+import { Check } from 'lucide-react'
 import Header from '../components/layout/Header'
-import Badge from '../components/ui/Badge'
+import Pill from '../components/ui/Pill'
+import Avatar from '../components/ui/Avatar'
 import usersData from '../data/users.json'
 
 const { currentUser } = usersData
 
 const plans = [
   {
-    name: 'Free',
-    price: '0€',
-    period: '/mois',
+    name: 'Free', price: '0€', period: '/mois',
     features: ['3 projets max', '10 diagrammes', 'Analyse basique', 'Export PNG'],
     current: false,
   },
   {
-    name: 'Pro',
-    price: '29€',
-    period: '/mois',
+    name: 'Pro', price: '29€', period: '/mois',
     features: ['Projets illimités', 'Diagrammes illimités', 'Analyse avancée', 'Assistant IA', 'Export PNG/SVG/PDF', 'Historique versions'],
     current: true,
   },
   {
-    name: 'Entreprise',
-    price: '99€',
-    period: '/mois',
+    name: 'Équipe', price: '49€', period: '/siège/mois',
     features: ['Tout Pro inclus', 'Collaboration équipe', 'SSO / SAML', 'API dédiée', 'Support prioritaire', 'SLA 99.9%'],
     current: false,
   },
 ]
 
-const tabs = [
-  { id: 'profile', label: 'Profil', icon: User },
-  { id: 'notifications', label: 'Notifications', icon: Bell },
-  { id: 'security', label: 'Sécurité', icon: Shield },
-  { id: 'billing', label: 'Abonnement', icon: CreditCard },
+const TABS = [
+  { id: 'general',       label: 'Général' },
+  { id: 'analysis',      label: 'Analyse' },
+  { id: 'team',          label: 'Équipe' },
+  { id: 'integrations',  label: 'Intégrations' },
+  { id: 'billing',       label: 'Facturation' },
 ]
 
+const team = [
+  { name: 'Claire L.', initials: 'CL', color: '#5BC0BE', role: 'Owner', ago: 'il y a 4 min' },
+  { name: 'Marie R.',  initials: 'MR', color: '#FF7A59', role: 'Admin', ago: 'il y a 1 h' },
+  { name: 'Sam K.',    initials: 'SK', color: '#3FB984', role: 'Member', ago: 'hier' },
+  { name: 'Jean D.',   initials: 'JD', color: '#A78BFA', role: 'Member', ago: 'il y a 3 j' },
+]
+
+const integrations = [
+  { name: 'GitHub', connected: true },
+  { name: 'GitLab', connected: false },
+  { name: 'Slack',  connected: true },
+  { name: 'Jira',   connected: false },
+]
+
+const inputStyle: React.CSSProperties = {
+  width: '100%', background: 'var(--bg-0)', border: '1px solid var(--line-2)',
+  borderRadius: 6, padding: '8px 12px', fontSize: 13, color: 'var(--fg-0)',
+  outline: 'none', fontFamily: 'var(--font-sans)',
+}
+
 export default function Settings() {
-  const [activeTab, setActiveTab] = useState('profile')
+  const [tab, setTab] = useState('general')
   const [form, setForm] = useState({ name: currentUser.name, email: currentUser.email, role: currentUser.role })
   const [saved, setSaved] = useState(false)
 
@@ -48,183 +64,181 @@ export default function Settings() {
   }
 
   return (
-    <div className="flex flex-col min-h-screen">
-      <Header title="Paramètres" subtitle="Gérez votre compte et vos préférences" />
+    <div>
+      <Header title="Paramètres" subtitle="Configuration de l'espace · plan Team" />
 
-      <div className="flex-1 px-8 py-6">
-        <div className="flex gap-6">
-          {/* Tabs */}
-          <div className="w-48 shrink-0 space-y-0.5">
-            {tabs.map(tab => (
+      <div className="tabs">
+        {TABS.map(t => (
+          <button key={t.id} className={`tab${tab === t.id ? ' active' : ''}`} onClick={() => setTab(t.id)}>
+            {t.label}
+          </button>
+        ))}
+      </div>
+
+      <div style={{ padding: '28px', maxWidth: 720 }}>
+        {tab === 'general' && (
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 18 }}>
+            {/* Avatar */}
+            <div className="card" style={{ display: 'flex', alignItems: 'center', gap: 16 }}>
+              <div style={{ width: 56, height: 56, borderRadius: 12, background: 'var(--accent)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 22, fontWeight: 700, color: 'var(--bg-0)', flexShrink: 0 }}>
+                {currentUser.avatar}
+              </div>
+              <div>
+                <div style={{ fontWeight: 600, fontSize: 15, color: 'var(--fg-0)' }}>{currentUser.name}</div>
+                <div style={{ fontSize: 12, color: 'var(--fg-1)', margin: '2px 0 6px' }}>{currentUser.email}</div>
+                <Pill tone="info" square>{currentUser.role}</Pill>
+              </div>
+            </div>
+
+            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 14 }}>
+              <div className="field">
+                <label>Nom complet</label>
+                <input value={form.name} onChange={e => setForm(f => ({ ...f, name: e.target.value }))} style={inputStyle} />
+              </div>
+              <div className="field">
+                <label>Adresse e-mail</label>
+                <input value={form.email} onChange={e => setForm(f => ({ ...f, email: e.target.value }))} style={inputStyle} />
+              </div>
+            </div>
+            <div className="field" style={{ maxWidth: 300 }}>
+              <label>Rôle</label>
+              <select value={form.role} onChange={e => setForm(f => ({ ...f, role: e.target.value }))} style={{ ...inputStyle }}>
+                <option value="developer">Développeur</option>
+                <option value="architect">Architecte logiciel</option>
+                <option value="admin">Administrateur</option>
+              </select>
+            </div>
+            <div>
               <button
-                key={tab.id}
-                onClick={() => setActiveTab(tab.id)}
-                className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm transition-colors text-left ${
-                  activeTab === tab.id
-                    ? 'bg-violet-600/20 text-violet-300'
-                    : 'text-slate-400 hover:text-slate-200 hover:bg-white/5'
-                }`}
+                onClick={save}
+                className={`btn ${saved ? 'btn-primary' : 'btn-primary'}`}
+                style={saved ? { background: 'var(--ok)' } : undefined}
               >
-                <tab.icon size={15} />
-                {tab.label}
+                {saved && <Check size={14} />}
+                {saved ? 'Enregistré !' : 'Enregistrer'}
               </button>
+            </div>
+          </div>
+        )}
+
+        {tab === 'analysis' && (
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 18 }}>
+            <div className="field">
+              <label>Seuil de couplage (CBO)</label>
+              <input style={inputStyle} defaultValue="14" />
+              <span className="dim" style={{ fontSize: 11 }}>Au-dessus, une issue critique est levée.</span>
+            </div>
+            <div className="field">
+              <label>Seuil LCOM</label>
+              <input style={inputStyle} defaultValue="0.6" />
+            </div>
+            <div className="field">
+              <label>Profondeur d'analyse</label>
+              <select style={{ ...inputStyle }}>
+                <option>3 niveaux (recommandé)</option>
+                <option>5 niveaux</option>
+                <option>Illimitée</option>
+              </select>
+            </div>
+            <label style={{ display: 'flex', alignItems: 'center', gap: 10, fontSize: 13, cursor: 'pointer' }}>
+              <input type="checkbox" defaultChecked style={{ accentColor: 'var(--accent)', width: 14, height: 14 }} />
+              Lancer une analyse à chaque push
+            </label>
+            <label style={{ display: 'flex', alignItems: 'center', gap: 10, fontSize: 13, cursor: 'pointer' }}>
+              <input type="checkbox" defaultChecked style={{ accentColor: 'var(--accent)', width: 14, height: 14 }} />
+              Bloquer la PR sur issue critique
+            </label>
+          </div>
+        )}
+
+        {tab === 'team' && (
+          <div className="card" style={{ padding: 0 }}>
+            <table className="table">
+              <thead>
+                <tr><th>Membre</th><th>Rôle</th><th>Dernière activité</th></tr>
+              </thead>
+              <tbody>
+                {team.map(m => (
+                  <tr key={m.name}>
+                    <td>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+                        <Avatar initials={m.initials} color={m.color} size={26} />
+                        <span>{m.name}</span>
+                      </div>
+                    </td>
+                    <td><Pill tone={m.role === 'Owner' ? 'info' : 'neutral'} square>{m.role}</Pill></td>
+                    <td className="muted">{m.ago}</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        )}
+
+        {tab === 'integrations' && (
+          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
+            {integrations.map(it => (
+              <div key={it.name} className="card" style={{ display: 'flex', alignItems: 'center', gap: 14 }}>
+                <div style={{ width: 36, height: 36, borderRadius: 8, background: 'var(--bg-2)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 13, fontWeight: 700, color: 'var(--fg-1)', flexShrink: 0 }}>
+                  {it.name[0]}
+                </div>
+                <div style={{ flex: 1 }}>
+                  <div style={{ fontWeight: 600, fontSize: 13, color: 'var(--fg-0)' }}>{it.name}</div>
+                  <div className="dim" style={{ fontSize: 11, marginTop: 2 }}>{it.connected ? 'Connecté' : 'Non connecté'}</div>
+                </div>
+                {it.connected
+                  ? <Pill tone="ok" square dot>actif</Pill>
+                  : <button className="btn btn-secondary btn-sm">Connecter</button>}
+              </div>
             ))}
           </div>
+        )}
 
-          {/* Content */}
-          <div className="flex-1 max-w-2xl">
-            {activeTab === 'profile' && (
-              <div className="bg-[#12141c] border border-[#1e2235] rounded-xl p-6 space-y-5">
-                <h3 className="text-white font-semibold">Informations personnelles</h3>
+        {tab === 'billing' && (
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 20 }}>
+            <div className="card">
+              <div style={{ fontSize: 11, color: 'var(--fg-2)', fontWeight: 600, letterSpacing: '0.06em', textTransform: 'uppercase', marginBottom: 6 }}>Plan actuel</div>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+                <span style={{ fontWeight: 700, fontSize: 16, color: 'var(--fg-0)' }}>Pro</span>
+                <Pill tone="ok" square dot>Actif</Pill>
+              </div>
+              <div style={{ fontSize: 12, color: 'var(--fg-2)', marginTop: 6 }}>Renouvellement le 5 juin 2026</div>
+            </div>
 
-                {/* Avatar */}
-                <div className="flex items-center gap-4">
-                  <div className="w-16 h-16 rounded-2xl bg-violet-600 flex items-center justify-center text-xl text-white font-bold">
-                    {currentUser.avatar}
-                  </div>
-                  <div>
-                    <p className="text-slate-200 text-sm font-medium">{currentUser.name}</p>
-                    <p className="text-slate-500 text-xs">{currentUser.email}</p>
-                    <Badge label={currentUser.role} variant="purple" />
-                  </div>
-                </div>
-
-                <div className="grid grid-cols-2 gap-4">
-                  <div>
-                    <label className="block text-xs text-slate-400 mb-1.5">Nom complet</label>
-                    <input
-                      value={form.name}
-                      onChange={e => setForm(f => ({ ...f, name: e.target.value }))}
-                      className="w-full bg-[#0d0f17] border border-[#2a2d3e] rounded-lg px-4 py-2.5 text-sm text-slate-200 outline-none focus:border-violet-500 transition-colors"
-                    />
-                  </div>
-                  <div>
-                    <label className="block text-xs text-slate-400 mb-1.5">Adresse e-mail</label>
-                    <input
-                      value={form.email}
-                      onChange={e => setForm(f => ({ ...f, email: e.target.value }))}
-                      className="w-full bg-[#0d0f17] border border-[#2a2d3e] rounded-lg px-4 py-2.5 text-sm text-slate-200 outline-none focus:border-violet-500 transition-colors"
-                    />
-                  </div>
-                </div>
-
-                <div>
-                  <label className="block text-xs text-slate-400 mb-1.5">Rôle</label>
-                  <select
-                    value={form.role}
-                    onChange={e => setForm(f => ({ ...f, role: e.target.value }))}
-                    className="bg-[#0d0f17] border border-[#2a2d3e] rounded-lg px-4 py-2.5 text-sm text-slate-200 outline-none focus:border-violet-500 transition-colors"
-                  >
-                    <option value="developer">Développeur</option>
-                    <option value="architect">Architecte logiciel</option>
-                    <option value="admin">Administrateur</option>
-                  </select>
-                </div>
-
-                <button
-                  onClick={save}
-                  className={`flex items-center gap-2 px-5 py-2.5 rounded-lg text-sm font-medium transition-colors ${
-                    saved ? 'bg-emerald-600 text-white' : 'bg-violet-600 hover:bg-violet-500 text-white'
-                  }`}
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 12 }}>
+              {plans.map(plan => (
+                <div
+                  key={plan.name}
+                  className="card"
+                  style={plan.current ? { borderColor: 'var(--accent)', background: 'var(--accent-soft)' } : {}}
                 >
-                  {saved && <Check size={14} />}
-                  {saved ? 'Enregistré !' : 'Enregistrer'}
-                </button>
-              </div>
-            )}
-
-            {activeTab === 'billing' && (
-              <div className="space-y-4">
-                <div className="bg-[#12141c] border border-[#1e2235] rounded-xl p-4 mb-6">
-                  <p className="text-xs text-slate-400 mb-1">Plan actuel</p>
-                  <div className="flex items-center gap-2">
-                    <span className="text-white font-semibold">Pro</span>
-                    <Badge label="Actif" variant="success" />
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 10 }}>
+                    <span style={{ fontWeight: 700, fontSize: 14, color: 'var(--fg-0)' }}>{plan.name}</span>
+                    {plan.current && <Pill tone="info" square dot>Actuel</Pill>}
                   </div>
-                  <p className="text-xs text-slate-500 mt-1">Renouvellement le 5 juin 2026</p>
-                </div>
-
-                <div className="grid grid-cols-3 gap-4">
-                  {plans.map(plan => (
-                    <div
-                      key={plan.name}
-                      className={`rounded-xl p-5 border ${
-                        plan.current
-                          ? 'border-violet-500/50 bg-violet-600/5'
-                          : 'border-[#1e2235] bg-[#12141c]'
-                      }`}
-                    >
-                      <div className="flex items-center justify-between mb-3">
-                        <h4 className="text-white font-semibold text-sm">{plan.name}</h4>
-                        {plan.current && <Badge label="Actuel" variant="purple" />}
-                      </div>
-                      <div className="mb-4">
-                        <span className="text-2xl font-bold text-white">{plan.price}</span>
-                        <span className="text-slate-500 text-xs">{plan.period}</span>
-                      </div>
-                      <ul className="space-y-1.5 mb-4">
-                        {plan.features.map((f, i) => (
-                          <li key={i} className="flex items-center gap-2 text-xs text-slate-400">
-                            <Check size={11} className="text-violet-400 shrink-0" />
-                            {f}
-                          </li>
-                        ))}
-                      </ul>
-                      <button
-                        className={`w-full py-2 rounded-lg text-xs font-medium transition-colors ${
-                          plan.current
-                            ? 'bg-violet-600/20 text-violet-300 cursor-default'
-                            : 'bg-[#1e2235] text-slate-300 hover:bg-violet-600/20 hover:text-violet-300'
-                        }`}
-                      >
-                        {plan.current ? 'Plan actuel' : 'Choisir'}
-                      </button>
-                    </div>
-                  ))}
-                </div>
-              </div>
-            )}
-
-            {activeTab === 'notifications' && (
-              <div className="bg-[#12141c] border border-[#1e2235] rounded-xl p-6 space-y-4">
-                <h3 className="text-white font-semibold">Préférences de notifications</h3>
-                {[
-                  { label: 'Analyse terminée', desc: 'Notifier quand une analyse est complète', enabled: true },
-                  { label: 'Nouvelle violation critique', desc: 'Alerte immédiate sur les violations critiques', enabled: true },
-                  { label: 'Rapport hebdomadaire', desc: 'Résumé de l\'état de vos projets', enabled: false },
-                  { label: 'Mises à jour produit', desc: 'Nouvelles fonctionnalités et améliorations', enabled: false },
-                ].map((item, i) => (
-                  <div key={i} className="flex items-center justify-between py-3 border-b border-[#1e2235] last:border-0">
-                    <div>
-                      <p className="text-slate-200 text-sm">{item.label}</p>
-                      <p className="text-slate-500 text-xs mt-0.5">{item.desc}</p>
-                    </div>
-                    <div className={`w-10 h-5 rounded-full relative cursor-pointer transition-colors ${item.enabled ? 'bg-violet-600' : 'bg-[#2a2d3e]'}`}>
-                      <div className={`absolute top-0.5 w-4 h-4 rounded-full bg-white transition-transform ${item.enabled ? 'translate-x-5' : 'translate-x-0.5'}`} />
-                    </div>
+                  <div style={{ marginBottom: 14 }}>
+                    <span className="mono" style={{ fontSize: 24, fontWeight: 700, color: 'var(--fg-0)' }}>{plan.price}</span>
+                    <span style={{ fontSize: 11, color: 'var(--fg-2)' }}>{plan.period}</span>
                   </div>
-                ))}
-              </div>
-            )}
-
-            {activeTab === 'security' && (
-              <div className="bg-[#12141c] border border-[#1e2235] rounded-xl p-6 space-y-5">
-                <h3 className="text-white font-semibold">Sécurité du compte</h3>
-                <div>
-                  <label className="block text-xs text-slate-400 mb-1.5">Mot de passe actuel</label>
-                  <input type="password" placeholder="••••••••" className="w-full bg-[#0d0f17] border border-[#2a2d3e] rounded-lg px-4 py-2.5 text-sm text-slate-200 outline-none focus:border-violet-500 transition-colors" />
+                  <ul style={{ listStyle: 'none', padding: 0, margin: '0 0 14px', display: 'flex', flexDirection: 'column', gap: 6 }}>
+                    {plan.features.map((f, i) => (
+                      <li key={i} style={{ display: 'flex', alignItems: 'center', gap: 8, fontSize: 12, color: 'var(--fg-1)' }}>
+                        <Check size={11} style={{ color: 'var(--ok)', flexShrink: 0 }} />
+                        {f}
+                      </li>
+                    ))}
+                  </ul>
+                  <button
+                    className={plan.current ? 'btn btn-ghost btn-sm' : 'btn btn-secondary btn-sm'}
+                    style={{ width: '100%', justifyContent: 'center', cursor: plan.current ? 'default' : 'pointer' }}
+                  >
+                    {plan.current ? 'Plan actuel' : 'Choisir'}
+                  </button>
                 </div>
-                <div>
-                  <label className="block text-xs text-slate-400 mb-1.5">Nouveau mot de passe</label>
-                  <input type="password" placeholder="••••••••" className="w-full bg-[#0d0f17] border border-[#2a2d3e] rounded-lg px-4 py-2.5 text-sm text-slate-200 outline-none focus:border-violet-500 transition-colors" />
-                </div>
-                <button className="flex items-center gap-2 px-5 py-2.5 rounded-lg bg-violet-600 hover:bg-violet-500 text-white text-sm font-medium transition-colors">
-                  Mettre à jour
-                </button>
-              </div>
-            )}
+              ))}
+            </div>
           </div>
-        </div>
+        )}
       </div>
     </div>
   )
