@@ -1,0 +1,18 @@
+# Dev override — usage:
+#   docker-compose -f docker-compose.yml -f docker-compose.dev.yml up
+#
+# Replaces the frontend prod build (Nginx) with the Vite dev server.
+# Source code is mounted so HMR works without rebuilding the image.
+
+services:
+  frontend:
+    build:
+      context: ./frontend
+      target: dev
+    ports:
+      - "3000:5173"
+    volumes:
+      - ./frontend:/app
+      - /app/node_modules   # keep container node_modules isolated
+    environment:
+      - CHOKIDAR_USEPOLLING=true   # file-watch polling for Windows/WSL hosts
