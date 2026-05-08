@@ -4,6 +4,8 @@ import com.example.authservice.dto.AuthResponse;
 import com.example.authservice.dto.LoginRequest;
 import com.example.authservice.dto.RegisterRequest;
 import com.example.authservice.entity.AppUser;
+import com.example.authservice.entity.Role;
+import com.example.authservice.repository.RoleRepository;
 import com.example.authservice.repository.UserRepository;
 import com.example.authservice.security.JwtUtil;
 import lombok.RequiredArgsConstructor;
@@ -19,6 +21,7 @@ import org.springframework.stereotype.Service;
 public class AuthService {
 
     private final UserRepository userRepository;
+    private final RoleRepository roleRepository;
     private final PasswordEncoder passwordEncoder;
     private final JwtUtil jwtUtil;
     private final AuthenticationManager authenticationManager;
@@ -29,7 +32,9 @@ public class AuthService {
             throw new IllegalArgumentException("Email already in use");
         }
 
-        String role = (request.role() != null && !request.role().isBlank()) ? request.role() : "developer";
+        String roleName = (request.role() != null && !request.role().isBlank()) ? request.role() : "developer";
+        Role role = roleRepository.findByName(roleName)
+                .orElseThrow(() -> new IllegalArgumentException("Role not found: " + roleName));
 
         AppUser user = AppUser.builder()
                 .name(request.name())
@@ -64,7 +69,7 @@ public class AuthService {
                 user.getId(),
                 user.getName(),
                 user.getEmail(),
-                user.getRole(),
+                user.getRole().getName(),
                 user.getPlan()
         ));
     }

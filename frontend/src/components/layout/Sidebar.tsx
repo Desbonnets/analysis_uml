@@ -1,5 +1,5 @@
 import { NavLink, useNavigate } from 'react-router-dom'
-import { LayoutDashboard, FolderOpen, GitBranch, AlertTriangle, Sparkles, Settings, LogOut } from 'lucide-react'
+import { LayoutDashboard, FolderOpen, GitBranch, AlertTriangle, Sparkles, Settings, LogOut, Users } from 'lucide-react'
 import Logo from '../ui/Logo'
 import Avatar from '../ui/Avatar'
 import { useAuth } from '../../context/AuthContext'
@@ -45,6 +45,19 @@ export default function Sidebar() {
           {count != null && <span className="count">{count}</span>}
         </NavLink>
       ))}
+
+      {user?.role === 'admin' && (
+        <>
+          <div className="label" style={{ marginTop: 12 }}>Administration</div>
+          <NavLink
+            to="/admin/users"
+            className={({ isActive }) => `sb-item${isActive ? ' active' : ''}`}
+          >
+            <Users size={16} className="icon" />
+            <span>Utilisateurs</span>
+          </NavLink>
+        </>
+      )}
 
       <div className="footer">
         <NavLink
