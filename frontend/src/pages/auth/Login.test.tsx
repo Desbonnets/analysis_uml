@@ -1,4 +1,4 @@
-import { render, screen } from '@testing-library/react'
+import { render, screen, waitFor } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { describe, it, expect, vi } from 'vitest'
 import { MemoryRouter } from 'react-router-dom'
@@ -11,6 +11,17 @@ vi.mock('react-router-dom', async () => {
   return { ...actual, useNavigate: () => mockNavigate }
 })
 
+vi.mock('../../api/auth', () => ({
+  login: vi.fn().mockResolvedValue({
+    token: 'test-token',
+    user: { id: 1, name: 'Test User', email: 'test@test.com', role: 'developer', plan: 'free' },
+  }),
+}))
+
+vi.mock('../../context/AuthContext', () => ({
+  useAuth: () => ({ saveAuth: vi.fn(), clearAuth: vi.fn(), user: null, token: null }),
+}))
+
 function renderLogin() {
   return render(
     <MemoryRouter>
@@ -20,16 +31,14 @@ function renderLogin() {
 }
 
 describe('Login', () => {
-  it('renders the email input with default value', () => {
+  it('renders the email input', () => {
     renderLogin()
-    expect(screen.getByDisplayValue('claire@umla.io')).toBeInTheDocument()
+    expect(screen.getByPlaceholderText('toi@exemple.com')).toBeInTheDocument()
   })
 
-  it('renders the password input empty', () => {
+  it('renders the password input', () => {
     const { container } = renderLogin()
-    const passwordInput = container.querySelector<HTMLInputElement>('[type="password"]')
-    expect(passwordInput).toBeInTheDocument()
-    expect(passwordInput?.value).toBe('')
+    expect(container.querySelector('[type="password"]')).toBeInTheDocument()
   })
 
   it('renders the submit button', () => {
@@ -47,27 +56,28 @@ describe('Login', () => {
     expect(screen.getByRole('link', { name: /Créer un espace/i })).toBeInTheDocument()
   })
 
-  it('allows typing a new email', async () => {
+  it('allows typing an email', async () => {
     const user = userEvent.setup()
     renderLogin()
-    const emailInput = screen.getByDisplayValue('claire@umla.io')
-    await user.clear(emailInput)
-    await user.type(emailInput, 'nouveau@exemple.com')
-    expect(emailInput).toHaveValue('nouveau@exemple.com')
+    const input = screen.getByPlaceholderText('toi@exemple.com')
+    await user.type(input, 'alice@example.com')
+    expect(input).toHaveValue('alice@example.com')
   })
 
   it('allows typing a password', async () => {
     const user = userEvent.setup()
     const { container } = renderLogin()
-    const passwordInput = container.querySelector<HTMLInputElement>('[type="password"]')!
-    await user.type(passwordInput, 'secret123')
-    expect(passwordInput).toHaveValue('secret123')
+    const input = container.querySelector<HTMLInputElement>('[type="password"]')!
+    await user.type(input, 'Alice1234!@#')
+    expect(input).toHaveValue('Alice1234!@#')
   })
 
-  it('navigates to /dashboard on form submission', async () => {
+  it('navigates to /dashboard on successful submission', async () => {
     const user = userEvent.setup()
     renderLogin()
+    await user.type(screen.getByPlaceholderText('toi@exemple.com'), 'test@test.com')
+    await user.type(screen.getByPlaceholderText('••••••••'), 'Alice1234!@#')
     await user.click(screen.getByRole('button', { name: /Se connecter/i }))
-    expect(mockNavigate).toHaveBeenCalledWith('/dashboard')
+    await waitFor(() => expect(mockNavigate).toHaveBeenCalledWith('/dashboard'))
   })
 })

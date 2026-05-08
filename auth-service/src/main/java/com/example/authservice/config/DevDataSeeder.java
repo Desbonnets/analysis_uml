@@ -19,9 +19,9 @@ public class DevDataSeeder implements ApplicationRunner {
 
     @Override
     public void run(ApplicationArguments args) {
-        seed("Admin Dev",  "admin@dev.local", "Admin1234!", "admin",     "pro");
-        seed("Alice Dev",  "alice@dev.local", "Alice1234!", "developer", "pro");
-        seed("Bob Dev",    "bob@dev.local",   "Bob12345!",  "developer", "free");
+        seed("Admin Dev",  "admin@dev.local", "Admin1234!@#", "admin",     "pro");
+        seed("Alice Dev",  "alice@dev.local", "Alice1234!@#", "developer", "pro");
+        seed("Bob Dev",    "bob@dev.local",   "Bob@Dev1234!", "developer", "free");
     }
 
     private void seed(String name, String email, String rawPassword, String role, String plan) {

@@ -152,7 +152,7 @@ cd <service-directory>
 | `APP_JWT_EXPIRATION_MS` | `86400000` (24 h) | JWT lifetime |
 | `SEED_ADMIN_NAME` | `Admin` | Name of the seeded admin user (Docker only) |
 | `SEED_ADMIN_EMAIL` | `admin@example.com` | Email of the seeded admin user (Docker only) |
-| `SEED_ADMIN_PASSWORD` | `Admin1234!` | Password of the seeded admin user — **change in production** |
+| `SEED_ADMIN_PASSWORD` | `Admin1234!@#` | Password of the seeded admin user — **change in production** |
 
 ### Frontend (Vite)
 
@@ -173,9 +173,9 @@ Users are seeded automatically at startup — idempotent (inserted only if the e
 
 | Name | Email | Password | Role | Plan |
 |---|---|---|---|---|
-| Admin Dev | `admin@dev.local` | `Admin1234!` | admin | pro |
-| Alice Dev | `alice@dev.local` | `Alice1234!` | developer | pro |
-| Bob Dev | `bob@dev.local` | `Bob12345!` | developer | free |
+| Admin Dev | `admin@dev.local` | `Admin1234!@#` | admin | pro |
+| Alice Dev | `alice@dev.local` | `Alice1234!@#` | developer | pro |
+| Bob Dev | `bob@dev.local` | `Bob@Dev1234!` | developer | free |
 
 ### Docker / prod (profile `docker`)
 

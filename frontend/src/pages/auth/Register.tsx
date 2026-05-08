@@ -5,15 +5,31 @@ import Logo from '../../components/ui/Logo'
 import { register } from '../../api/auth'
 import { useAuth } from '../../context/AuthContext'
 
+const PASSWORD_RULES = [
+  { test: (p: string) => p.length >= 12,          hint: 'Au moins 12 caractères' },
+  { test: (p: string) => /[A-Z]/.test(p),         hint: 'Au moins une majuscule' },
+  { test: (p: string) => /[a-z]/.test(p),         hint: 'Au moins une minuscule' },
+  { test: (p: string) => /\d/.test(p),            hint: 'Au moins un chiffre' },
+  { test: (p: string) => /[^a-zA-Z0-9]/.test(p), hint: 'Au moins un caractère spécial (!@#…)' },
+]
+
+function validatePassword(password: string): string | null {
+  const failing = PASSWORD_RULES.find(r => !r.test(password))
+  return failing ? failing.hint : null
+}
+
 export default function Register() {
   const [form, setForm] = useState({ name: '', email: '', password: '', role: 'developer' })
   const [error, setError] = useState<string | null>(null)
+  const [passwordHint, setPasswordHint] = useState<string | null>(null)
   const [loading, setLoading] = useState(false)
   const navigate = useNavigate()
   const { saveAuth } = useAuth()
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
+    const hint = validatePassword(form.password)
+    if (hint) { setPasswordHint(hint); return }
     setError(null)
     setLoading(true)
     try {
@@ -29,6 +45,12 @@ export default function Register() {
 
   const set = (field: string) => (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) =>
     setForm(f => ({ ...f, [field]: e.target.value }))
+
+  const handlePasswordChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const val = e.target.value
+    setForm(f => ({ ...f, password: val }))
+    setPasswordHint(val ? validatePassword(val) : null)
+  }
 
   return (
     <div className="login-wrap">
@@ -69,7 +91,16 @@ export default function Register() {
           </div>
           <div className="field">
             <label>Mot de passe</label>
-            <input type="password" value={form.password} onChange={set('password')} placeholder="Min. 8 caractères" required minLength={8} />
+            <input
+              type="password"
+              value={form.password}
+              onChange={handlePasswordChange}
+              placeholder="Min. 12 caractères, majuscule, chiffre, symbole"
+              required
+            />
+            {passwordHint && (
+              <span style={{ fontSize: 11, color: 'var(--warn)', marginTop: 2 }}>{passwordHint}</span>
+            )}
           </div>
 
           {error && (
