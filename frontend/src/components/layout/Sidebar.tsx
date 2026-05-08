@@ -1,7 +1,8 @@
-import { NavLink } from 'react-router-dom'
+import { NavLink, useNavigate } from 'react-router-dom'
 import { LayoutDashboard, FolderOpen, GitBranch, AlertTriangle, Sparkles, Settings, LogOut } from 'lucide-react'
 import Logo from '../ui/Logo'
 import Avatar from '../ui/Avatar'
+import { useAuth } from '../../context/AuthContext'
 
 const nav = [
   { to: '/dashboard', icon: LayoutDashboard, label: 'Tableau de bord' },
@@ -11,7 +12,19 @@ const nav = [
   { to: '/ai',        icon: Sparkles,          label: 'Assistant IA' },
 ]
 
+function toInitials(name: string): string {
+  return name.split(' ').map(w => w[0]).slice(0, 2).join('').toUpperCase()
+}
+
 export default function Sidebar() {
+  const { user, clearAuth } = useAuth()
+  const navigate = useNavigate()
+
+  function handleLogout() {
+    clearAuth()
+    navigate('/login')
+  }
+
   return (
     <aside className="sidebar">
       <div className="brand">
@@ -43,14 +56,20 @@ export default function Sidebar() {
         </NavLink>
 
         <div style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '8px 10px', background: 'var(--bg-2)', borderRadius: 6, marginTop: 2 }}>
-          <Avatar initials="AM" color="var(--accent)" size={26} />
+          <Avatar initials={user ? toInitials(user.name) : '?'} color="var(--accent)" size={26} />
           <div style={{ flex: 1, minWidth: 0 }}>
             <div style={{ fontSize: 12, fontWeight: 600, color: 'var(--fg-0)', lineHeight: 1.3, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
-              Alice Martin
+              {user?.name ?? ''}
             </div>
-            <div style={{ fontSize: 10, color: 'var(--accent)' }}>Pro</div>
+            <div style={{ fontSize: 10, color: 'var(--accent)', textTransform: 'capitalize' }}>{user?.plan ?? ''}</div>
           </div>
-          <LogOut size={14} style={{ color: 'var(--fg-2)', flexShrink: 0 }} />
+          <button
+            onClick={handleLogout}
+            style={{ background: 'none', border: 'none', padding: 0, cursor: 'pointer', display: 'flex', alignItems: 'center' }}
+            title="Se déconnecter"
+          >
+            <LogOut size={14} style={{ color: 'var(--fg-2)' }} />
+          </button>
         </div>
       </div>
     </aside>
