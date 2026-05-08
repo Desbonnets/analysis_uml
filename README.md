@@ -150,6 +150,9 @@ cd <service-directory>
 | `SPRING_DATASOURCE_PASSWORD` | `admin` | |
 | `APP_JWT_SECRET` | dev-only base64 key | **Change in production** |
 | `APP_JWT_EXPIRATION_MS` | `86400000` (24 h) | JWT lifetime |
+| `SEED_ADMIN_NAME` | `Admin` | Name of the seeded admin user (Docker only) |
+| `SEED_ADMIN_EMAIL` | `admin@example.com` | Email of the seeded admin user (Docker only) |
+| `SEED_ADMIN_PASSWORD` | `Admin1234!` | Password of the seeded admin user — **change in production** |
 
 ### Frontend (Vite)
 
@@ -159,6 +162,24 @@ cd <service-directory>
 
 In dev (`npm run dev`), the frontend calls the gateway directly.  
 In Docker, Nginx proxies `/api/**` to `gateway:8080` internally — no cross-origin request from the browser.
+
+---
+
+## Fixtures (seed data)
+
+Users are seeded automatically at startup — idempotent (inserted only if the email does not already exist).
+
+### Dev (local, profile `!docker`)
+
+| Name | Email | Password | Role | Plan |
+|---|---|---|---|---|
+| Admin Dev | `admin@dev.local` | `Admin1234!` | admin | pro |
+| Alice Dev | `alice@dev.local` | `Alice1234!` | developer | pro |
+| Bob Dev | `bob@dev.local` | `Bob12345!` | developer | free |
+
+### Docker / prod (profile `docker`)
+
+One admin user is seeded using the env vars `SEED_ADMIN_EMAIL`, `SEED_ADMIN_PASSWORD`, `SEED_ADMIN_NAME` (see docker-compose.yml). Change these before any real production deployment.
 
 ---
 
