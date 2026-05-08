@@ -1,6 +1,7 @@
 import { createBrowserRouter, Navigate } from 'react-router-dom'
 import Layout from '../components/layout/Layout'
 import ProtectedRoute from '../components/auth/ProtectedRoute'
+import AdminRoute from '../components/auth/AdminRoute'
 import Login from '../pages/auth/Login'
 import Register from '../pages/auth/Register'
 import Dashboard from '../pages/Dashboard'
@@ -11,6 +12,7 @@ import DiagramEditor from '../pages/DiagramEditor'
 import Analysis from '../pages/Analysis'
 import AIAssistant from '../pages/AIAssistant'
 import Settings from '../pages/Settings'
+import AdminUsers from '../pages/admin/Users'
 
 export const router = createBrowserRouter([
   { path: '/login', element: <Login /> },
@@ -31,6 +33,13 @@ export const router = createBrowserRouter([
           { path: 'analysis', element: <Analysis /> },
           { path: 'ai', element: <AIAssistant /> },
           { path: 'settings', element: <Settings /> },
+          {
+            path: 'admin',
+            element: <AdminRoute />,
+            children: [
+              { path: 'users', element: <AdminUsers /> },
+            ],
+          },
         ],
       },
     ],

@@ -51,12 +51,23 @@ export interface Violation {
   line: number
 }
 
+export type RoleName = 'admin' | 'architect' | 'developer'
+export type PlanName = 'free' | 'pro' | 'enterprise'
+
+export interface RoleInfo {
+  id: number
+  name: RoleName
+  displayName: string
+  description: string
+  permissions: string[]
+}
+
 export interface User {
   id: string
   name: string
   email: string
-  role: 'admin' | 'architect' | 'developer'
-  plan: 'free' | 'pro' | 'enterprise'
+  role: RoleName
+  plan: PlanName
   avatar: string
 }
 
@@ -64,8 +75,17 @@ export interface AuthUser {
   id: number
   name: string
   email: string
-  role: 'admin' | 'architect' | 'developer'
-  plan: 'free' | 'pro' | 'enterprise'
+  role: RoleName
+  plan: PlanName
+}
+
+export interface UserAdmin {
+  id: number
+  name: string
+  email: string
+  role: RoleInfo
+  plan: PlanName
+  createdAt: string
 }
 
 export interface AuthResponse {
@@ -83,6 +103,28 @@ export interface RegisterRequest {
   email: string
   password: string
   role: string
+}
+
+export interface UpdateProfileRequest {
+  name?: string
+  email?: string
+  currentPassword?: string
+  newPassword?: string
+}
+
+export interface AdminCreateUserRequest {
+  name: string
+  email: string
+  password: string
+  role: string
+  plan: string
+}
+
+export interface AdminUpdateUserRequest {
+  name?: string
+  email?: string
+  role?: string
+  plan?: string
 }
 
 export interface AIMessage {
