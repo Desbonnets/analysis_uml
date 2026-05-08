@@ -2,15 +2,30 @@ import { useState } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
 import { LogIn, GitBranch } from 'lucide-react'
 import Logo from '../../components/ui/Logo'
+import { login } from '../../api/auth'
+import { useAuth } from '../../context/AuthContext'
 
 export default function Login() {
-  const [email, setEmail] = useState('claire@umla.io')
+  const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
+  const [error, setError] = useState<string | null>(null)
+  const [loading, setLoading] = useState(false)
   const navigate = useNavigate()
+  const { saveAuth } = useAuth()
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
-    navigate('/dashboard')
+    setError(null)
+    setLoading(true)
+    try {
+      const res = await login({ email, password })
+      saveAuth(res.token, res.user)
+      navigate('/dashboard')
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Erreur de connexion')
+    } finally {
+      setLoading(false)
+    }
   }
 
   return (
@@ -41,6 +56,7 @@ export default function Login() {
               value={email}
               onChange={e => setEmail(e.target.value)}
               placeholder="toi@exemple.com"
+              required
             />
           </div>
           <div className="field">
@@ -50,13 +66,19 @@ export default function Login() {
               value={password}
               onChange={e => setPassword(e.target.value)}
               placeholder="••••••••"
+              required
             />
             <a href="#" style={{ fontSize: 11, color: 'var(--accent)', textDecoration: 'none', alignSelf: 'flex-end' }}>
               Mot de passe oublié ?
             </a>
           </div>
-          <button type="submit" className="btn btn-primary" style={{ width: '100%', justifyContent: 'center' }}>
-            <LogIn size={14} /> Se connecter
+
+          {error && (
+            <p style={{ fontSize: 12, color: 'var(--bad)', margin: 0 }}>{error}</p>
+          )}
+
+          <button type="submit" className="btn btn-primary" style={{ width: '100%', justifyContent: 'center' }} disabled={loading}>
+            <LogIn size={14} /> {loading ? 'Connexion…' : 'Se connecter'}
           </button>
         </form>
 
@@ -66,7 +88,7 @@ export default function Login() {
           <div style={{ flex: 1, height: 1, background: 'var(--line-1)' }} />
         </div>
 
-        <button className="btn btn-secondary" style={{ width: '100%', justifyContent: 'center' }}>
+        <button className="btn btn-secondary" style={{ width: '100%', justifyContent: 'center' }} disabled>
           <GitBranch size={14} /> Continuer avec GitHub
         </button>
 
