@@ -56,6 +56,17 @@ const inputStyle: React.CSSProperties = {
   outline: 'none', fontFamily: 'var(--font-sans)',
 }
 
+function inputStyleWith(error?: string): React.CSSProperties {
+  return error ? { ...inputStyle, borderColor: 'var(--bad)' } : inputStyle
+}
+
+function FieldError({ msg }: { msg?: string }) {
+  if (!msg) return null
+  return <span style={{ fontSize: 11, color: 'var(--bad)', marginTop: 2 }}>{msg}</span>
+}
+
+const PASSWORD_RE = /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[^a-zA-Z0-9]).{12,}$/
+
 function initials(name: string): string {
   return name.split(' ').map(w => w[0]).slice(0, 2).join('').toUpperCase()
 }
@@ -65,6 +76,7 @@ export default function Settings() {
   const [tab, setTab] = useState('general')
 
   const [form, setForm] = useState({ name: '', email: '', currentPassword: '', newPassword: '' })
+  const [fieldErrors, setFieldErrors] = useState<{ newPassword?: string; currentPassword?: string }>({})
   const [profileLoading, setProfileLoading] = useState(true)
   const [saveStatus, setSaveStatus] = useState<'idle' | 'saving' | 'saved' | 'error'>('idle')
   const [saveError, setSaveError] = useState('')
@@ -90,9 +102,20 @@ export default function Settings() {
       .finally(() => setTeamLoading(false))
   }, [tab, token, authUser?.role])
 
+  function validatePassword(): boolean {
+    if (!form.newPassword) return true
+    const next: typeof fieldErrors = {}
+    if (!form.currentPassword) next.currentPassword = 'Mot de passe actuel requis'
+    if (!PASSWORD_RE.test(form.newPassword))
+      next.newPassword = 'Min. 12 car., majuscule, minuscule, chiffre et caractère spécial'
+    setFieldErrors(next)
+    return Object.keys(next).length === 0
+  }
+
   async function handleSave(e: React.FormEvent) {
     e.preventDefault()
     if (!token) return
+    if (!validatePassword()) return
     setSaveStatus('saving')
     setSaveError('')
     try {
@@ -164,11 +187,25 @@ export default function Settings() {
                   <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 14 }}>
                     <div className="field">
                       <label>Mot de passe actuel</label>
-                      <input type="password" style={inputStyle} value={form.currentPassword} onChange={e => setForm(f => ({ ...f, currentPassword: e.target.value }))} placeholder="Laisser vide pour ne pas changer" />
+                      <input
+                        type="password"
+                        style={inputStyleWith(fieldErrors.currentPassword)}
+                        value={form.currentPassword}
+                        onChange={e => { setForm(f => ({ ...f, currentPassword: e.target.value })); setFieldErrors(er => ({ ...er, currentPassword: undefined })) }}
+                        placeholder="Laisser vide pour ne pas changer"
+                      />
+                      <FieldError msg={fieldErrors.currentPassword} />
                     </div>
                     <div className="field">
                       <label>Nouveau mot de passe</label>
-                      <input type="password" style={inputStyle} value={form.newPassword} onChange={e => setForm(f => ({ ...f, newPassword: e.target.value }))} placeholder="12+ car., maj., min., chiffre, spécial" />
+                      <input
+                        type="password"
+                        style={inputStyleWith(fieldErrors.newPassword)}
+                        value={form.newPassword}
+                        onChange={e => { setForm(f => ({ ...f, newPassword: e.target.value })); setFieldErrors(er => ({ ...er, newPassword: undefined })) }}
+                        placeholder="12+ car., maj., min., chiffre, spécial"
+                      />
+                      <FieldError msg={fieldErrors.newPassword} />
                     </div>
                   </div>
                 </div>
