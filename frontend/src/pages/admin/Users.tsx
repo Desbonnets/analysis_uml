@@ -30,6 +30,17 @@ const inputStyle: React.CSSProperties = {
   outline: 'none', fontFamily: 'var(--font-sans)',
 }
 
+function inputStyleWith(error?: string): React.CSSProperties {
+  return error ? { ...inputStyle, borderColor: 'var(--bad)' } : inputStyle
+}
+
+function FieldError({ msg }: { msg?: string }) {
+  if (!msg) return null
+  return <span style={{ fontSize: 11, color: 'var(--bad)', marginTop: 2 }}>{msg}</span>
+}
+
+const PASSWORD_RE = /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[^a-zA-Z0-9]).{12,}$/
+
 interface CreateModalProps {
   roles: RoleInfo[]
   onClose: () => void
@@ -41,18 +52,31 @@ function CreateModal({ roles, onClose, onCreated, token }: CreateModalProps) {
   const [form, setForm] = useState<AdminCreateUserRequest>({
     name: '', email: '', password: '', role: 'developer', plan: 'free',
   })
-  const [error, setError] = useState('')
+  const [errors, setErrors] = useState<Partial<Record<keyof AdminCreateUserRequest, string>>>({})
+  const [apiError, setApiError] = useState('')
   const [loading, setLoading] = useState(false)
+
+  function validate(): boolean {
+    const next: typeof errors = {}
+    if (!form.name.trim()) next.name = 'Nom requis'
+    if (!form.email.trim()) next.email = 'Email requis'
+    else if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(form.email)) next.email = 'Email invalide'
+    if (!PASSWORD_RE.test(form.password))
+      next.password = 'Min. 12 car., majuscule, minuscule, chiffre et caractère spécial'
+    setErrors(next)
+    return Object.keys(next).length === 0
+  }
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault()
-    setError('')
+    setApiError('')
+    if (!validate()) return
     setLoading(true)
     try {
       const created = await createUser(token, form)
       onCreated(created)
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Erreur')
+      setApiError(err instanceof Error ? err.message : 'Erreur serveur')
     } finally {
       setLoading(false)
     }
@@ -69,16 +93,34 @@ function CreateModal({ roles, onClose, onCreated, token }: CreateModalProps) {
           <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
             <div className="field">
               <label>Nom complet</label>
-              <input required style={inputStyle} value={form.name} onChange={e => setForm(f => ({ ...f, name: e.target.value }))} />
+              <input
+                style={inputStyleWith(errors.name)}
+                value={form.name}
+                onChange={e => { setForm(f => ({ ...f, name: e.target.value })); setErrors(er => ({ ...er, name: undefined })) }}
+              />
+              <FieldError msg={errors.name} />
             </div>
             <div className="field">
               <label>Email</label>
-              <input required type="email" style={inputStyle} value={form.email} onChange={e => setForm(f => ({ ...f, email: e.target.value }))} />
+              <input
+                type="email"
+                style={inputStyleWith(errors.email)}
+                value={form.email}
+                onChange={e => { setForm(f => ({ ...f, email: e.target.value })); setErrors(er => ({ ...er, email: undefined })) }}
+              />
+              <FieldError msg={errors.email} />
             </div>
           </div>
           <div className="field">
             <label>Mot de passe</label>
-            <input required type="password" style={inputStyle} value={form.password} onChange={e => setForm(f => ({ ...f, password: e.target.value }))} placeholder="12+ car., maj., min., chiffre, spécial" />
+            <input
+              type="password"
+              style={inputStyleWith(errors.password)}
+              value={form.password}
+              onChange={e => { setForm(f => ({ ...f, password: e.target.value })); setErrors(er => ({ ...er, password: undefined })) }}
+              placeholder="12+ car., maj., min., chiffre, spécial"
+            />
+            <FieldError msg={errors.password} />
           </div>
           <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
             <div className="field">
@@ -96,7 +138,7 @@ function CreateModal({ roles, onClose, onCreated, token }: CreateModalProps) {
               </select>
             </div>
           </div>
-          {error && <div style={{ fontSize: 12, color: 'var(--bad)', padding: '8px 12px', background: 'var(--bad-soft, rgba(255,90,90,.1))', borderRadius: 6 }}>{error}</div>}
+          {apiError && <div style={{ fontSize: 12, color: 'var(--bad)', padding: '8px 12px', background: 'rgba(255,90,90,.1)', borderRadius: 6 }}>{apiError}</div>}
           <div style={{ display: 'flex', gap: 10, justifyContent: 'flex-end', marginTop: 4 }}>
             <button type="button" className="btn btn-ghost btn-sm" onClick={onClose}>Annuler</button>
             <button type="submit" className="btn btn-primary btn-sm" disabled={loading}>
@@ -120,42 +162,53 @@ function EditRoleSelect({ user, roles, token, onUpdated }: EditRoleProps) {
   const [editing, setEditing] = useState(false)
   const [value, setValue] = useState<string>(user.role.name)
   const [loading, setLoading] = useState(false)
+  const [error, setError] = useState('')
 
   async function handleChange(e: React.ChangeEvent<HTMLSelectElement>) {
     const newRole = e.target.value
     setValue(newRole)
+    setError('')
     setLoading(true)
     try {
       const updated = await updateUserRole(token, user.id, newRole)
       onUpdated(updated)
+      setEditing(false)
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Erreur serveur')
+      setValue(user.role.name)
     } finally {
       setLoading(false)
-      setEditing(false)
     }
   }
 
   if (!editing) {
     return (
-      <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
-        <Pill tone={ROLE_TONE[user.role.name]} square>{user.role.displayName}</Pill>
-        <button onClick={() => setEditing(true)} style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--fg-2)', display: 'flex' }} title="Modifier le rôle">
-          <Pencil size={11} />
-        </button>
+      <div style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+          <Pill tone={ROLE_TONE[user.role.name]} square>{user.role.displayName}</Pill>
+          <button onClick={() => { setEditing(true); setError('') }} style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--fg-2)', display: 'flex' }} title="Modifier le rôle">
+            <Pencil size={11} />
+          </button>
+        </div>
+        {error && <span style={{ fontSize: 11, color: 'var(--bad)' }}>{error}</span>}
       </div>
     )
   }
 
   return (
-    <select
-      autoFocus
-      value={value}
-      disabled={loading}
-      onChange={handleChange}
-      onBlur={() => setEditing(false)}
-      style={{ ...inputStyle, padding: '4px 8px', width: 'auto' }}
-    >
-      {roles.map(r => <option key={r.name} value={r.name}>{r.displayName}</option>)}
-    </select>
+    <div style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
+      <select
+        autoFocus
+        value={value}
+        disabled={loading}
+        onChange={handleChange}
+        onBlur={() => { setEditing(false); setError('') }}
+        style={{ ...inputStyle, padding: '4px 8px', width: 'auto', borderColor: error ? 'var(--bad)' : undefined }}
+      >
+        {roles.map(r => <option key={r.name} value={r.name}>{r.displayName}</option>)}
+      </select>
+      {error && <span style={{ fontSize: 11, color: 'var(--bad)' }}>{error}</span>}
+    </div>
   )
 }
 
