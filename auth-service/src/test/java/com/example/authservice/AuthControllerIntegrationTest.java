@@ -129,4 +129,33 @@ class AuthControllerIntegrationTest {
                         .content(objectMapper.writeValueAsString(body)))
                 .andExpect(status().isBadRequest());
     }
+
+    @Test
+    void login_returns401WithErrorMessageForWrongPassword() throws Exception {
+        var regBody = Map.of(
+                "name", "Cred User",
+                "email", "cred@integration.test",
+                "password", "Cred1234!@#$",
+                "role", "developer");
+        mockMvc.perform(post("/auth/register")
+                .contentType(MediaType.APPLICATION_JSON)
+                .content(objectMapper.writeValueAsString(regBody)));
+
+        var loginBody = Map.of("email", "cred@integration.test", "password", "WrongPass1234!@#");
+        mockMvc.perform(post("/auth/login")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(loginBody)))
+                .andExpect(status().isUnauthorized())
+                .andExpect(jsonPath("$.error").value("Email ou mot de passe incorrect"));
+    }
+
+    @Test
+    void login_returns401WithErrorMessageForUnknownEmail() throws Exception {
+        var body = Map.of("email", "nobody@integration.test", "password", "Any1234!@#$");
+        mockMvc.perform(post("/auth/login")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(body)))
+                .andExpect(status().isUnauthorized())
+                .andExpect(jsonPath("$.error").isNotEmpty());
+    }
 }
