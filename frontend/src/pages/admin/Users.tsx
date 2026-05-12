@@ -4,7 +4,7 @@ import Header from '../../components/layout/Header'
 import Pill from '../../components/ui/Pill'
 import Avatar from '../../components/ui/Avatar'
 import { useAuth } from '../../context/AuthContext'
-import { getUsers, createUser, updateUser, deleteUser, updateUserRole } from '../../api/users'
+import { getUsers, createUser, deleteUser, updateUserRole } from '../../api/users'
 import { getRoles } from '../../api/roles'
 import type { UserAdmin, RoleInfo, AdminCreateUserRequest, RoleName, PlanName } from '../../types'
 
@@ -118,7 +118,7 @@ interface EditRoleProps {
 
 function EditRoleSelect({ user, roles, token, onUpdated }: EditRoleProps) {
   const [editing, setEditing] = useState(false)
-  const [value, setValue] = useState(user.role.name)
+  const [value, setValue] = useState<string>(user.role.name)
   const [loading, setLoading] = useState(false)
 
   async function handleChange(e: React.ChangeEvent<HTMLSelectElement>) {
