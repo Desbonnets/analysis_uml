@@ -4,6 +4,7 @@ import Header from '../components/layout/Header'
 import Pill from '../components/ui/Pill'
 import Avatar from '../components/ui/Avatar'
 import { useAuth } from '../context/AuthContext'
+import { useToast } from '../context/ToastContext'
 import { getMe, updateMe } from '../api/profile'
 import { getUsers } from '../api/users'
 import type { UserAdmin, RoleName } from '../types'
@@ -73,12 +74,13 @@ function initials(name: string): string {
 
 export default function Settings() {
   const { token, user: authUser, saveAuth } = useAuth()
+  const { showToast } = useToast()
   const [tab, setTab] = useState('general')
 
   const [form, setForm] = useState({ name: '', email: '', currentPassword: '', newPassword: '' })
   const [fieldErrors, setFieldErrors] = useState<{ newPassword?: string; currentPassword?: string }>({})
   const [profileLoading, setProfileLoading] = useState(true)
-  const [saveStatus, setSaveStatus] = useState<'idle' | 'saving' | 'saved' | 'error'>('idle')
+  const [saving, setSaving] = useState(false)
   const [saveError, setSaveError] = useState('')
 
   const [teamUsers, setTeamUsers] = useState<UserAdmin[]>([])
@@ -103,10 +105,12 @@ export default function Settings() {
   }, [tab, token, authUser?.role])
 
   function validatePassword(): boolean {
-    if (!form.newPassword) return true
+    // If both fields are empty, no password change is intended — skip
+    if (!form.currentPassword && !form.newPassword) return true
     const next: typeof fieldErrors = {}
     if (!form.currentPassword) next.currentPassword = 'Mot de passe actuel requis'
-    if (!PASSWORD_RE.test(form.newPassword))
+    if (!form.newPassword) next.newPassword = 'Nouveau mot de passe requis'
+    else if (!PASSWORD_RE.test(form.newPassword))
       next.newPassword = 'Min. 12 car., majuscule, minuscule, chiffre et caractère spécial'
     setFieldErrors(next)
     return Object.keys(next).length === 0
@@ -116,7 +120,7 @@ export default function Settings() {
     e.preventDefault()
     if (!token) return
     if (!validatePassword()) return
-    setSaveStatus('saving')
+    setSaving(true)
     setSaveError('')
     try {
       const payload: Parameters<typeof updateMe>[1] = {}
@@ -129,11 +133,11 @@ export default function Settings() {
       const updated = await updateMe(token, payload)
       if (authUser) saveAuth(token, { ...authUser, name: updated.name, email: updated.email })
       setForm(f => ({ ...f, currentPassword: '', newPassword: '' }))
-      setSaveStatus('saved')
-      setTimeout(() => setSaveStatus('idle'), 2500)
+      showToast('Profil enregistré avec succès')
     } catch (err) {
       setSaveError(err instanceof Error ? err.message : 'Erreur de sauvegarde')
-      setSaveStatus('error')
+    } finally {
+      setSaving(false)
     }
   }
 
@@ -210,20 +214,14 @@ export default function Settings() {
                   </div>
                 </div>
 
-                {saveStatus === 'error' && saveError && (
-                  <div style={{ fontSize: 12, color: 'var(--bad)', padding: '8px 12px', background: 'var(--bad-soft, rgba(255,90,90,.1))', borderRadius: 6 }}>
+                {saveError && (
+                  <div style={{ fontSize: 12, color: 'var(--bad)', padding: '8px 12px', background: 'var(--bad-soft)', borderRadius: 6 }}>
                     {saveError}
                   </div>
                 )}
                 <div>
-                  <button
-                    type="submit"
-                    className="btn btn-primary"
-                    disabled={saveStatus === 'saving'}
-                    style={saveStatus === 'saved' ? { background: 'var(--ok)' } : undefined}
-                  >
-                    {saveStatus === 'saved' && <Check size={14} />}
-                    {saveStatus === 'saving' ? 'Sauvegarde...' : saveStatus === 'saved' ? 'Enregistré !' : 'Enregistrer'}
+                  <button type="submit" className="btn btn-primary" disabled={saving}>
+                    {saving ? 'Sauvegarde...' : 'Enregistrer'}
                   </button>
                 </div>
               </>
