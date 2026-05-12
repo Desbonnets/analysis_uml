@@ -105,8 +105,6 @@ export default function Settings() {
   }, [tab, token, authUser?.role])
 
   function validatePassword(): boolean {
-    // If both fields are empty, no password change is intended — skip
-    if (!form.currentPassword && !form.newPassword) return true
     const next: typeof fieldErrors = {}
     if (!form.currentPassword) next.currentPassword = 'Mot de passe actuel requis'
     if (!form.newPassword) next.newPassword = 'Nouveau mot de passe requis'
@@ -115,6 +113,8 @@ export default function Settings() {
     setFieldErrors(next)
     return Object.keys(next).length === 0
   }
+
+  const passwordComplete = !!form.currentPassword && !!form.newPassword
 
   async function handleSave(e: React.FormEvent) {
     e.preventDefault()
@@ -220,7 +220,12 @@ export default function Settings() {
                   </div>
                 )}
                 <div>
-                  <button type="submit" className="btn btn-primary" disabled={saving}>
+                  <button
+                    type="submit"
+                    className="btn btn-primary"
+                    disabled={saving || !passwordComplete}
+                    title={!passwordComplete ? 'Remplissez les deux champs de mot de passe' : undefined}
+                  >
                     {saving ? 'Sauvegarde...' : 'Enregistrer'}
                   </button>
                 </div>
