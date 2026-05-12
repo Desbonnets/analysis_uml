@@ -126,6 +126,33 @@ class UserControllerIntegrationTest {
     }
 
     @Test
+    void updateMe_returns400ForWeakNewPassword() throws Exception {
+        var body = Map.of(
+                "currentPassword", "Admin1234!@#",
+                "newPassword", "weak");
+
+        mockMvc.perform(put("/auth/me")
+                        .header("Authorization", "Bearer " + adminToken)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(body)))
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.error").isNotEmpty());
+    }
+
+    @Test
+    void updateMe_returns200WhenNewPasswordIsValid() throws Exception {
+        var body = Map.of(
+                "currentPassword", "Admin1234!@#",
+                "newPassword", "NewAdmin1234!@#");
+
+        mockMvc.perform(put("/auth/me")
+                        .header("Authorization", "Bearer " + adminToken)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(body)))
+                .andExpect(status().isOk());
+    }
+
+    @Test
     void deleteUser_returns204ForAdmin() throws Exception {
         var body = Map.of(
                 "name", "ToDelete", "email", "todelete@test.local",

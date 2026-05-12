@@ -1,7 +1,10 @@
 FROM node:24-alpine AS base
 WORKDIR /app
 COPY package*.json ./
-RUN npm ci
+# npm ci fails on cross-platform lock files (Windows lock file missing Linux-only
+# optional deps like @emnapi/core required by @tailwindcss/oxide-wasm32-wasi).
+# npm install respects the lock file versions without the strict sync check.
+RUN npm install
 
 # ── Dev stage: Vite dev server with HMR ──────────────────────────────
 FROM base AS dev

@@ -1,6 +1,6 @@
 import { render, screen, waitFor } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
-import { describe, it, expect, vi } from 'vitest'
+import { describe, it, expect, vi, beforeEach } from 'vitest'
 import { MemoryRouter } from 'react-router-dom'
 import Login from './Login'
 
@@ -11,26 +11,26 @@ vi.mock('react-router-dom', async () => {
   return { ...actual, useNavigate: () => mockNavigate }
 })
 
-vi.mock('../../api/auth', () => ({
-  login: vi.fn().mockResolvedValue({
-    token: 'test-token',
-    user: { id: 1, name: 'Test User', email: 'test@test.com', role: 'developer', plan: 'free' },
-  }),
-}))
+const mockLogin = vi.fn()
+
+vi.mock('../../api/auth', () => ({ login: mockLogin }))
 
 vi.mock('../../context/AuthContext', () => ({
   useAuth: () => ({ saveAuth: vi.fn(), clearAuth: vi.fn(), user: null, token: null }),
 }))
 
 function renderLogin() {
-  return render(
-    <MemoryRouter>
-      <Login />
-    </MemoryRouter>
-  )
+  return render(<MemoryRouter><Login /></MemoryRouter>)
 }
 
-describe('Login', () => {
+const validUser = {
+  token: 'test-token',
+  user: { id: 1, name: 'Test User', email: 'test@test.com', role: 'developer', plan: 'free' },
+}
+
+describe('Login — rendering', () => {
+  beforeEach(() => { mockLogin.mockResolvedValue(validUser) })
+
   it('renders the email input', () => {
     renderLogin()
     expect(screen.getByPlaceholderText('toi@exemple.com')).toBeInTheDocument()
@@ -55,6 +55,10 @@ describe('Login', () => {
     renderLogin()
     expect(screen.getByRole('link', { name: /Créer un espace/i })).toBeInTheDocument()
   })
+})
+
+describe('Login — interactions', () => {
+  beforeEach(() => { mockLogin.mockResolvedValue(validUser) })
 
   it('allows typing an email', async () => {
     const user = userEvent.setup()
@@ -79,5 +83,58 @@ describe('Login', () => {
     await user.type(screen.getByPlaceholderText('••••••••'), 'Alice1234!@#')
     await user.click(screen.getByRole('button', { name: /Se connecter/i }))
     await waitFor(() => expect(mockNavigate).toHaveBeenCalledWith('/dashboard'))
+  })
+
+  it('shows loading state while submitting', async () => {
+    mockLogin.mockReturnValue(new Promise(() => {}))
+    const user = userEvent.setup()
+    renderLogin()
+    await user.type(screen.getByPlaceholderText('toi@exemple.com'), 'test@test.com')
+    await user.type(screen.getByPlaceholderText('••••••••'), 'Alice1234!@#')
+    await user.click(screen.getByRole('button', { name: /Se connecter/i }))
+    expect(screen.getByRole('button', { name: /Connexion/i })).toBeDisabled()
+  })
+})
+
+describe('Login — error handling', () => {
+  it('displays wrong-credentials message on 401', async () => {
+    mockLogin.mockRejectedValue(new Error('Email ou mot de passe incorrect'))
+    const user = userEvent.setup()
+    renderLogin()
+    await user.type(screen.getByPlaceholderText('toi@exemple.com'), 'bad@test.com')
+    await user.type(screen.getByPlaceholderText('••••••••'), 'wrongpassword')
+    await user.click(screen.getByRole('button', { name: /Se connecter/i }))
+    await waitFor(() =>
+      expect(screen.getByText('Email ou mot de passe incorrect')).toBeInTheDocument(),
+    )
+  })
+
+  it('displays a network error message when the server is unreachable', async () => {
+    mockLogin.mockRejectedValue(new Error('Impossible de joindre le serveur. Vérifiez votre connexion.'))
+    const user = userEvent.setup()
+    renderLogin()
+    await user.type(screen.getByPlaceholderText('toi@exemple.com'), 'test@test.com')
+    await user.type(screen.getByPlaceholderText('••••••••'), 'Alice1234!@#')
+    await user.click(screen.getByRole('button', { name: /Se connecter/i }))
+    await waitFor(() =>
+      expect(screen.getByText(/Impossible de joindre le serveur/)).toBeInTheDocument(),
+    )
+  })
+
+  it('clears the error message when the form is resubmitted', async () => {
+    mockLogin
+      .mockRejectedValueOnce(new Error('Email ou mot de passe incorrect'))
+      .mockResolvedValueOnce(validUser)
+    const user = userEvent.setup()
+    renderLogin()
+    await user.type(screen.getByPlaceholderText('toi@exemple.com'), 'test@test.com')
+    await user.type(screen.getByPlaceholderText('••••••••'), 'wrong')
+    await user.click(screen.getByRole('button', { name: /Se connecter/i }))
+    await waitFor(() => expect(screen.getByText('Email ou mot de passe incorrect')).toBeInTheDocument())
+
+    await user.click(screen.getByRole('button', { name: /Se connecter/i }))
+    await waitFor(() =>
+      expect(screen.queryByText('Email ou mot de passe incorrect')).not.toBeInTheDocument(),
+    )
   })
 })
