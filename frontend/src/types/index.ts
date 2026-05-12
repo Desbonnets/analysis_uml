@@ -1,5 +1,5 @@
 export interface Project {
-  id: string
+  id: number
   name: string
   description: string
   language: 'Spring Boot' | 'Symfony' | 'Laravel' | 'Node.js'
@@ -9,7 +9,24 @@ export interface Project {
   score: number
   diagramsCount: number
   violationsCount: number
-  owner: string
+  ownerEmail: string
+  ownerName: string
+}
+
+export interface CreateProjectRequest {
+  name: string
+  description: string
+  language: string
+}
+
+export interface UpdateProjectRequest {
+  name?: string
+  description?: string
+  language?: string
+  status?: string
+  score?: number
+  diagramsCount?: number
+  violationsCount?: number
 }
 
 export interface DiagramClass {

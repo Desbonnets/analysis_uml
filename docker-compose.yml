@@ -101,11 +101,11 @@ services:
       eureka-server:
         condition: service_healthy
 
-  # ─── Service Métier 1 ──────────────────────────────────────────────
+  # ─── Project Service ──────────────────────────────────────────────
 
-  service-metier-1:
-    build: ./service-metier-1
-    container_name: service-metier-1
+  project-service:
+    build: ./project-service
+    container_name: project-service
     ports:
       - "8083:8083"
     environment:

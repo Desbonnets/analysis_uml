@@ -1,13 +1,14 @@
+import { useState, useEffect } from 'react'
 import { useParams, Link } from 'react-router-dom'
 import { ArrowLeft, GitBranch, AlertTriangle, BarChart2, Play, Plus } from 'lucide-react'
 import Header from '../components/layout/Header'
 import Pill from '../components/ui/Pill'
-import projectsData from '../data/projects.json'
+import { useAuth } from '../context/AuthContext'
+import { getProjectById } from '../api/projects'
 import diagramsData from '../data/diagrams.json'
 import violationsData from '../data/violations.json'
 import type { Project, Diagram, Violation } from '../types'
 
-const projects  = projectsData  as Project[]
 const diagrams  = diagramsData  as Diagram[]
 const violations = violationsData as Violation[]
 
@@ -32,9 +33,26 @@ const statusLabel: Record<string, string> = {
 
 export default function ProjectDetail() {
   const { id } = useParams<{ id: string }>()
-  const project          = projects.find(p => p.id === id)
+  const { token } = useAuth()
+  const [project, setProject] = useState<Project | null>(null)
+  const [loading, setLoading] = useState(true)
+
+  useEffect(() => {
+    if (!token || !id) return
+    getProjectById(token, parseInt(id, 10))
+      .then(setProject)
+      .catch(() => setProject(null))
+      .finally(() => setLoading(false))
+  }, [token, id])
+
   const projectDiagrams  = diagrams.filter(d => d.projectId === id)
   const projectViolations = violations.filter(v => v.projectId === id)
+
+  if (loading) return (
+    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', height: '100vh', color: 'var(--fg-2)', fontSize: 14 }}>
+      Chargement...
+    </div>
+  )
 
   if (!project) return (
     <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', height: '100vh', color: 'var(--fg-2)', fontSize: 14 }}>
@@ -55,12 +73,10 @@ export default function ProjectDetail() {
       />
 
       <div className="page" style={{ display: 'flex', flexDirection: 'column', gap: 20 }}>
-        {/* Retour */}
         <Link to="/projects" style={{ display: 'inline-flex', alignItems: 'center', gap: 6, fontSize: 13, color: 'var(--fg-1)', textDecoration: 'none' }}>
           <ArrowLeft size={14} /> Retour aux projets
         </Link>
 
-        {/* Score */}
         {project.score > 0 && (
           <div className="card">
             <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 14 }}>
@@ -89,7 +105,6 @@ export default function ProjectDetail() {
         )}
 
         <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 20 }}>
-          {/* Diagrammes */}
           <div className="card">
             <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 14 }}>
               <h3 style={{ margin: 0, fontSize: 14, fontWeight: 600, color: 'var(--fg-0)', display: 'flex', alignItems: 'center', gap: 8 }}>
@@ -127,7 +142,6 @@ export default function ProjectDetail() {
             )}
           </div>
 
-          {/* Violations */}
           <div className="card">
             <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 14 }}>
               <h3 style={{ margin: 0, fontSize: 14, fontWeight: 600, color: 'var(--fg-0)', display: 'flex', alignItems: 'center', gap: 8 }}>

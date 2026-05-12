@@ -4,10 +4,12 @@ import Header from '../components/layout/Header'
 import Pill from '../components/ui/Pill'
 import violationsData from '../data/violations.json'
 import projectsData from '../data/projects.json'
-import type { Violation, Project } from '../types'
+import type { Violation } from '../types'
+
+type ProjectJson = { id: string; name: string; status: string }
 
 const violations = violationsData as Violation[]
-const projects   = projectsData as Project[]
+const projects   = projectsData as unknown as ProjectJson[]
 
 const sevTone: Record<string, 'bad' | 'warn' | 'info' | 'neutral'> = {
   critical: 'bad', high: 'warn', medium: 'info', low: 'neutral',

@@ -21,11 +21,11 @@ npm run build      # tsc -b && vite build (blocked by Node version)
 ### Backend — run each service individually (dev mode)
 
 ```bash
-cd eureka-server    && ./mvnw spring-boot:run   # Start first — port 8761
-cd gateway          && ./mvnw spring-boot:run   # port 8080
-cd auth-service     && ./mvnw spring-boot:run   # port 8081
-cd user-service     && ./mvnw spring-boot:run   # port 8082
-cd service-metier-1 && ./mvnw spring-boot:run   # port 8083
+cd eureka-server   && ./mvnw spring-boot:run   # Start first — port 8761
+cd gateway         && ./mvnw spring-boot:run   # port 8080
+cd auth-service    && ./mvnw spring-boot:run   # port 8081
+cd user-service    && ./mvnw spring-boot:run   # port 8082
+cd project-service && ./mvnw spring-boot:run   # port 8083
 ```
 
 ### Full stack via Docker
@@ -44,9 +44,9 @@ docker-compose up -d postgres eureka-server     # Start infra only
 ```
 Browser → frontend:3000 (Nginx in Docker)
          → gateway:8080 (Spring Cloud Gateway, reactive)
-              → auth-service:8081   (Spring Security + JPA, auth_db)
-              → user-service:8082   (JPA, user_db)  ← skeleton, not yet implemented
-              → service-metier-1:8083 (JPA, metier1_db)
+              → auth-service:8081    (Spring Security + JPA, auth_db)
+              → user-service:8082    (JPA, user_db)  ← skeleton, not yet implemented
+              → project-service:8083 (JPA, metier1_db — project CRUD)
               ↕ Eureka discovery:8761
 ```
 
@@ -59,6 +59,7 @@ All services register with Eureka. The gateway routes by service name, not hardc
 | `/auth/**` | auth-service |
 | `/users/**` | auth-service |
 | `/roles/**` | auth-service |
+| `/projects/**` | project-service |
 
 ### auth-service internal layout
 
@@ -146,6 +147,22 @@ In Docker, `ProdDataSeeder` seeds a single admin user configurable via env vars 
 - `src/components/ui/` — `Button`, `Pill`, `Badge`, `Avatar`, `MetricCard`, `StatCard`, `Logo`
 - `src/pages/` — one file per route
 - `src/pages/admin/` — admin-only pages (`Users.tsx` — full CRUD table)
+
+### project-service (formerly service-metier-1)
+
+Manages projects (CRUD) at `/projects/**`. JWT validation uses the same secret as auth-service. `DevDataSeeder` seeds 8 sample projects on first start (idempotent — skips if table is non-empty).
+
+```
+entity/     Project (projects table)
+repository/ ProjectRepository
+dto/        ProjectDto, CreateProjectRequest, UpdateProjectRequest
+service/    ProjectService (CRUD, owner-only update/delete)
+controller/ ProjectController (/projects/**)
+security/   JwtUtil, JwtAuthFilter, JwtUserDetailsService (stateless — no user DB)
+config/     SecurityConfig, DevDataSeeder
+```
+
+Authorization: all authenticated users can list/read all projects; update/delete restricted to the project owner (`ownerEmail` == JWT subject).
 
 ### user-service
 

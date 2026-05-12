@@ -4,10 +4,12 @@ import Header from '../components/layout/Header'
 import Pill from '../components/ui/Pill'
 import diagramsData from '../data/diagrams.json'
 import projectsData from '../data/projects.json'
-import type { Diagram, Project } from '../types'
+import type { Diagram } from '../types'
+
+type ProjectJson = { id: string; name: string }
 
 const diagrams = diagramsData as Diagram[]
-const projects  = projectsData as Project[]
+const projects  = projectsData as unknown as ProjectJson[]
 
 const typeTone: Record<string, 'info' | 'ok' | 'warn' | 'neutral'> = {
   class: 'info', dependency: 'neutral', package: 'ok', sequence: 'warn',

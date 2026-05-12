@@ -1,6 +1,6 @@
 [
   {
-    "id": "proj-1",
+    "id": "1",
     "name": "EcommerceApp",
     "description": "Plateforme e-commerce microservices avec gestion de catalogue, panier et paiement.",
     "language": "Spring Boot",
@@ -13,7 +13,7 @@
     "owner": "Alice Martin"
   },
   {
-    "id": "proj-2",
+    "id": "2",
     "name": "BankingSystem",
     "description": "Système bancaire avec gestion de comptes, virements et notifications temps réel.",
     "language": "Spring Boot",
@@ -26,7 +26,7 @@
     "owner": "Thomas Dupont"
   },
   {
-    "id": "proj-3",
+    "id": "3",
     "name": "CRMPlatform",
     "description": "Gestion de la relation client avec pipeline de vente et reporting.",
     "language": "Symfony",
@@ -39,7 +39,7 @@
     "owner": "Alice Martin"
   },
   {
-    "id": "proj-4",
+    "id": "4",
     "name": "InventoryService",
     "description": "Service de gestion des stocks avec alertes et prévisions.",
     "language": "Spring Boot",
@@ -52,7 +52,7 @@
     "owner": "Alice Martin"
   },
   {
-    "id": "proj-5",
+    "id": "5",
     "name": "AuthGateway",
     "description": "Service d'authentification centralisé avec OAuth2 et gestion des tokens.",
     "language": "Spring Boot",
