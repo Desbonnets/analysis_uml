@@ -1,7 +1,7 @@
 [
   {
     "id": "diag-1",
-    "projectId": "proj-1",
+    "projectId": "1",
     "name": "Diagramme de classes — Catalogue",
     "type": "class",
     "createdAt": "2026-03-12T10:00:00Z",
@@ -67,7 +67,7 @@
   },
   {
     "id": "diag-2",
-    "projectId": "proj-1",
+    "projectId": "1",
     "name": "Diagramme de classes — Panier",
     "type": "class",
     "createdAt": "2026-03-14T10:00:00Z",
@@ -111,7 +111,7 @@
   },
   {
     "id": "diag-3",
-    "projectId": "proj-2",
+    "projectId": "2",
     "name": "Diagramme de classes — Comptes",
     "type": "class",
     "createdAt": "2026-02-22T10:00:00Z",

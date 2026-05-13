@@ -1,16 +1,19 @@
+import { useState, useEffect, useCallback } from 'react'
 import { Link } from 'react-router-dom'
 import { FolderOpen, RefreshCw, Upload } from 'lucide-react'
 import Header from '../components/layout/Header'
 import MetricCard from '../components/ui/MetricCard'
 import Avatar from '../components/ui/Avatar'
 import Pill from '../components/ui/Pill'
-import projects from '../data/projects.json'
+import { useAuth } from '../context/AuthContext'
+import { getProjects } from '../api/projects'
 import violations from '../data/violations.json'
+import type { Project } from '../types'
 
 const scoreColor = (s: number) => s >= 80 ? 'var(--ok)' : s >= 60 ? 'var(--warn)' : 'var(--bad)'
 
 const langShort: Record<string, string> = {
-  'Spring Boot': 'java', 'Symfony': 'php', 'Laravel': 'php', 'Node.js': 'ts',
+  'Spring Boot': 'java', Symfony: 'php', Laravel: 'php', 'Node.js': 'ts',
 }
 
 const activity = [
@@ -21,8 +24,25 @@ const activity = [
 ]
 
 export default function Dashboard() {
+  const { token } = useAuth()
+  const [projects, setProjects] = useState<Project[]>([])
+
+  const load = useCallback(async () => {
+    if (!token) return
+    try {
+      const data = await getProjects(token)
+      setProjects(data)
+    } catch {
+      // keep empty state — metrics show zeros
+    }
+  }, [token])
+
+  useEffect(() => { void load() }, [load])
+
   const analyzed      = projects.filter(p => p.status === 'analyzed')
-  const avgScore      = Math.round(analyzed.reduce((a, p) => a + p.score, 0) / analyzed.length)
+  const avgScore      = analyzed.length > 0
+    ? Math.round(analyzed.reduce((a, p) => a + p.score, 0) / analyzed.length)
+    : 0
   const totalViolations = violations.length
   const totalDiagrams   = projects.reduce((a, p) => a + p.diagramsCount, 0)
 
@@ -32,14 +52,13 @@ export default function Dashboard() {
         title="Tableau de bord"
         actions={
           <div style={{ display: 'flex', gap: 8 }}>
-            <button className="btn btn-secondary"><RefreshCw size={14} /> Actualiser</button>
+            <button className="btn btn-secondary" onClick={() => void load()}><RefreshCw size={14} /> Actualiser</button>
             <button className="btn btn-primary"><Upload size={14} /> Importer un dépôt</button>
           </div>
         }
       />
 
       <div className="page">
-        {/* Métriques */}
         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: 14, marginBottom: 28 }}>
           <MetricCard
             label="Projets analysés"
@@ -70,7 +89,6 @@ export default function Dashboard() {
         </div>
 
         <div style={{ display: 'grid', gridTemplateColumns: '2fr 1fr', gap: 20 }}>
-          {/* Tableau projets */}
           <div className="card" style={{ padding: 0 }}>
             <div style={{ padding: '14px 18px', borderBottom: '1px solid var(--line-1)', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
               <h3 style={{ margin: 0, fontSize: 14, fontWeight: 600, color: 'var(--fg-0)' }}>Projets récents</h3>
@@ -113,11 +131,15 @@ export default function Dashboard() {
                     </td>
                   </tr>
                 ))}
+                {projects.length === 0 && (
+                  <tr>
+                    <td colSpan={5} style={{ textAlign: 'center', color: 'var(--fg-2)', padding: 24 }}>Aucun projet</td>
+                  </tr>
+                )}
               </tbody>
             </table>
           </div>
 
-          {/* Activité */}
           <div className="card" style={{ padding: 0 }}>
             <div style={{ padding: '14px 18px', borderBottom: '1px solid var(--line-1)' }}>
               <h3 style={{ margin: 0, fontSize: 14, fontWeight: 600, color: 'var(--fg-0)' }}>Activité</h3>

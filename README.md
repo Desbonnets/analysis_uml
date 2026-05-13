@@ -38,7 +38,7 @@ Gateway routes by service name via Eureka, not hardcoded URLs.
 | gateway | 8080 | — |
 | auth-service | 8081 | auth_db |
 | user-service | 8082 | user_db |
-| service-metier-1 | 8083 | metier1_db |
+| service-metier-1 | 8083 | projet_db |
 | eureka-server | 8761 | — |
 | postgres | 5432 | — |
 
@@ -264,7 +264,7 @@ PostgreSQL 16 with three databases created automatically on first run via `init-
 ```sql
 CREATE DATABASE auth_db;
 CREATE DATABASE user_db;
-CREATE DATABASE metier1_db;
+CREATE DATABASE projet_db;
 ```
 
 JPA DDL mode is `update` in all services — schema is managed automatically during development.  

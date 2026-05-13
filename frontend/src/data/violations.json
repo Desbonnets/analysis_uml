@@ -1,7 +1,7 @@
 [
   {
     "id": "viol-1",
-    "projectId": "proj-1",
+    "projectId": "1",
     "type": "SOLID",
     "severity": "high",
     "title": "Violation du principe de responsabilité unique (SRP)",
@@ -11,7 +11,7 @@
   },
   {
     "id": "viol-2",
-    "projectId": "proj-1",
+    "projectId": "1",
     "type": "DEPENDENCY",
     "severity": "medium",
     "title": "Dépendance circulaire détectée",
@@ -21,7 +21,7 @@
   },
   {
     "id": "viol-3",
-    "projectId": "proj-1",
+    "projectId": "1",
     "type": "PATTERN",
     "severity": "low",
     "title": "Anti-pattern : God Class",
@@ -31,7 +31,7 @@
   },
   {
     "id": "viol-4",
-    "projectId": "proj-1",
+    "projectId": "1",
     "type": "ARCHITECTURE",
     "severity": "medium",
     "title": "Accès direct à la couche de données depuis le contrôleur",
@@ -41,7 +41,7 @@
   },
   {
     "id": "viol-5",
-    "projectId": "proj-2",
+    "projectId": "2",
     "type": "SOLID",
     "severity": "critical",
     "title": "Violation du principe ouvert/fermé (OCP)",
@@ -51,7 +51,7 @@
   },
   {
     "id": "viol-6",
-    "projectId": "proj-2",
+    "projectId": "2",
     "type": "SOLID",
     "severity": "critical",
     "title": "Violation du principe de substitution de Liskov (LSP)",
@@ -61,7 +61,7 @@
   },
   {
     "id": "viol-7",
-    "projectId": "proj-2",
+    "projectId": "2",
     "type": "DEPENDENCY",
     "severity": "high",
     "title": "Fort couplage entre modules",
@@ -71,7 +71,7 @@
   },
   {
     "id": "viol-8",
-    "projectId": "proj-2",
+    "projectId": "2",
     "type": "ARCHITECTURE",
     "severity": "high",
     "title": "Logique métier dans les entités JPA",
@@ -81,7 +81,7 @@
   },
   {
     "id": "viol-9",
-    "projectId": "proj-2",
+    "projectId": "2",
     "type": "PATTERN",
     "severity": "medium",
     "title": "Anti-pattern : Lazy Class",
@@ -91,7 +91,7 @@
   },
   {
     "id": "viol-10",
-    "projectId": "proj-2",
+    "projectId": "2",
     "type": "SOLID",
     "severity": "high",
     "title": "Violation du principe d'inversion de dépendance (DIP)",
@@ -101,7 +101,7 @@
   },
   {
     "id": "viol-11",
-    "projectId": "proj-2",
+    "projectId": "2",
     "type": "DEPENDENCY",
     "severity": "medium",
     "title": "Dépendance vers une couche supérieure",
@@ -111,7 +111,7 @@
   },
   {
     "id": "viol-12",
-    "projectId": "proj-2",
+    "projectId": "2",
     "type": "PATTERN",
     "severity": "low",
     "title": "Duplications de code entre SavingsAccount et CurrentAccount",
@@ -121,7 +121,7 @@
   },
   {
     "id": "viol-13",
-    "projectId": "proj-5",
+    "projectId": "5",
     "type": "ARCHITECTURE",
     "severity": "low",
     "title": "Token JWT sans expiration définie",

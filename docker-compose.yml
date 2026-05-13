@@ -101,17 +101,17 @@ services:
       eureka-server:
         condition: service_healthy
 
-  # ─── Service Métier 1 ──────────────────────────────────────────────
+  # ─── Project Service ──────────────────────────────────────────────
 
-  service-metier-1:
-    build: ./service-metier-1
-    container_name: service-metier-1
+  project-service:
+    build: ./project-service
+    container_name: project-service
     ports:
       - "8083:8083"
     environment:
       - SPRING_PROFILES_ACTIVE=docker
       - EUREKA_CLIENT_SERVICEURL_DEFAULTZONE=http://eureka-server:8761/eureka/
-      - SPRING_DATASOURCE_URL=jdbc:postgresql://postgres:5432/metier1_db
+      - SPRING_DATASOURCE_URL=jdbc:postgresql://postgres:5432/projet_db
       - SPRING_DATASOURCE_USERNAME=admin
       - SPRING_DATASOURCE_PASSWORD=admin
     networks:
