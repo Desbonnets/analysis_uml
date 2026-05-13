@@ -2,6 +2,26 @@ services:
 
   # ─── Infrastructure ────────────────────────────────────────────────
 
+  minio:
+    image: minio/minio:latest
+    container_name: minio
+    command: server /data --console-address ":9001"
+    ports:
+      - "9000:9000"
+      - "9001:9001"
+    environment:
+      MINIO_ROOT_USER: minioadmin
+      MINIO_ROOT_PASSWORD: minioadmin
+    volumes:
+      - minio_data:/data
+    networks:
+      - backend-network
+    healthcheck:
+      test: ["CMD", "mc", "ready", "local"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
   postgres:
     image: postgres:16-alpine
     container_name: postgres
@@ -122,6 +142,28 @@ services:
       eureka-server:
         condition: service_healthy
 
+  # ─── Analysis Service ─────────────────────────────────────────────
+
+  analysis-service:
+    build: ./analysis-service
+    container_name: analysis-service
+    ports:
+      - "8084:8084"
+    environment:
+      - SPRING_PROFILES_ACTIVE=docker
+      - EUREKA_CLIENT_SERVICEURL_DEFAULTZONE=http://eureka-server:8761/eureka/
+      - MINIO_ENDPOINT=http://minio:9000
+      - MINIO_ACCESS_KEY=minioadmin
+      - MINIO_SECRET_KEY=minioadmin
+      - MINIO_BUCKET=analysis-uploads
+    networks:
+      - backend-network
+    depends_on:
+      minio:
+        condition: service_healthy
+      eureka-server:
+        condition: service_healthy
+
   # ─── Frontend ──────────────────────────────────────────────────────
 
   frontend:
@@ -138,6 +180,7 @@ services:
 
 volumes:
   postgres_data:
+  minio_data:
 
 networks:
   backend-network:

@@ -137,21 +137,63 @@ Un `WebClient` (Spring WebFlux) ou `RestTemplate` sera utilisé dans `analysis-s
 
 ---
 
+## Stockage des fichiers ZIP
+
+### Stratégie
+
+| Environnement | Solution | Protocole |
+|---|---|---|
+| Dev local (Docker) | MinIO container | S3-compatible |
+| Production (OVH Kubernetes) | OVH Object Storage | S3-compatible |
+
+Le code est identique dans les deux cas — seules les variables d'environnement changent.
+
+### Structure du bucket
+
+```
+bucket : analysis-uploads
+clé    : projects/{projectId}/{timestamp}-source.zip
+ex     : projects/42/2026-05-13T10-00-00-source.zip
+```
+
+Le ZIP est conservé après analyse pour permettre une **relance sans re-upload**.
+
+### Variables d'environnement
+
+```bash
+# Dev local (MinIO Docker)
+MINIO_ENDPOINT=http://minio:9000
+MINIO_ACCESS_KEY=minioadmin
+MINIO_SECRET_KEY=minioadmin
+MINIO_BUCKET=analysis-uploads
+
+# Production (OVH Object Storage)
+MINIO_ENDPOINT=https://s3.gra.cloud.ovh.net
+MINIO_ACCESS_KEY=<ovh-access-key>
+MINIO_SECRET_KEY=<ovh-secret-key>
+MINIO_BUCKET=analysis-uploads
+```
+
+---
+
 ## Docker
 
 Ajouts dans `docker-compose.yml` :
+- Container **MinIO** (image `minio/minio`, ports 9000/9001)
 - Container **MongoDB** (image `mongo:7`)
 - Container **analysis-service** (port 8084)
 - Container **diagram-service** (port 8085)
 - Variable `SPRING_DATA_MONGODB_URI` pour `diagram-service`
 
-Base MongoDB créée automatiquement par Spring Data au premier démarrage.
+Base MongoDB créée automatiquement par Spring Data au premier démarrage.  
+Bucket MinIO créé automatiquement au démarrage de `analysis-service` (`@PostConstruct`).
 
 ---
 
-## Ordre d'implémentation suggéré
+## Ordre d'implémentation
 
-1. **Ajouts `project-service`** — table violations + endpoints (base pour les autres)
-2. **`diagram-service`** — structure MongoDB + CRUD endpoints
-3. **`analysis-service`** — parsing JavaParser + orchestration
-4. **Frontend** — upload ZIP, affichage violations, affichage diagramme
+1. **`analysis-service`** — upload ZIP + stockage MinIO ✅ *(en cours)*
+2. **Ajouts `project-service`** — table violations + endpoints
+3. **`diagram-service`** — structure MongoDB + CRUD endpoints
+4. **`analysis-service`** — parsing JavaParser + orchestration des appels
+5. **Frontend** — upload ZIP, affichage violations, affichage diagramme
