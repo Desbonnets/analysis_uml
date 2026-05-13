@@ -11,12 +11,15 @@ export interface Project {
   violationsCount: number
   ownerEmail: string
   ownerName: string
+  repositoryUrl?: string
+  hasApiToken?: boolean
 }
 
 export interface CreateProjectRequest {
   name: string
   description: string
   language: string
+  repositoryUrl?: string
 }
 
 export interface UpdateProjectRequest {

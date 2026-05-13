@@ -1,7 +1,9 @@
 package com.example.servicemetier1.controller;
 
 import com.example.servicemetier1.dto.CreateProjectRequest;
+import com.example.servicemetier1.dto.GenerateTokenResponse;
 import com.example.servicemetier1.dto.ProjectDto;
+import com.example.servicemetier1.dto.SubmitAnalysisRequest;
 import com.example.servicemetier1.dto.UpdateProjectRequest;
 import com.example.servicemetier1.service.ProjectService;
 import jakarta.validation.Valid;
@@ -53,5 +55,21 @@ public class ProjectController {
             @AuthenticationPrincipal UserDetails userDetails) {
         projectService.delete(id, userDetails.getUsername());
         return ResponseEntity.noContent().build();
+    }
+
+    @PostMapping("/{id}/token")
+    public ResponseEntity<GenerateTokenResponse> generateToken(
+            @PathVariable Long id,
+            @AuthenticationPrincipal UserDetails userDetails) {
+        return ResponseEntity.ok(projectService.generateToken(id, userDetails.getUsername()));
+    }
+
+    @PostMapping("/{id}/report")
+    public ResponseEntity<Void> submitReport(
+            @PathVariable Long id,
+            @RequestHeader("X-Project-Token") String token,
+            @RequestBody SubmitAnalysisRequest req) {
+        projectService.submitAnalysis(id, token, req);
+        return ResponseEntity.ok().build();
     }
 }

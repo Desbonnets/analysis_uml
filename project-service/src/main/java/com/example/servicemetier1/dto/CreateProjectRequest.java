@@ -12,4 +12,6 @@ public class CreateProjectRequest {
 
     @NotBlank(message = "Le langage est requis")
     private String language;
+
+    private String repositoryUrl;
 }
