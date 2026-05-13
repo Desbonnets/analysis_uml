@@ -46,7 +46,7 @@ Browser → frontend:3000 (Nginx in Docker)
          → gateway:8080 (Spring Cloud Gateway, reactive)
               → auth-service:8081    (Spring Security + JPA, auth_db)
               → user-service:8082    (JPA, user_db)  ← skeleton, not yet implemented
-              → project-service:8083 (JPA, metier1_db — project CRUD)
+              → project-service:8083 (JPA, projet_db — project CRUD)
               ↕ Eureka discovery:8761
 ```
 

@@ -1,3 +1,3 @@
 CREATE DATABASE auth_db;
 CREATE DATABASE user_db;
-CREATE DATABASE metier1_db;
+CREATE DATABASE projet_db;
