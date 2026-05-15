@@ -39,11 +39,11 @@
 			<artifactId>spring-cloud-starter-netflix-eureka-client</artifactId>
 		</dependency>
 
-		<!-- JavaParser — Java AST extraction -->
+		<!-- ANTLR4 runtime — multi-language AST parsing -->
 		<dependency>
-			<groupId>com.github.javaparser</groupId>
-			<artifactId>javaparser-core</artifactId>
-			<version>3.26.4</version>
+			<groupId>org.antlr</groupId>
+			<artifactId>antlr4-runtime</artifactId>
+			<version>4.13.2</version>
 		</dependency>
 
 		<!-- MinIO SDK (S3-compatible — works with OVH Object Storage) -->
@@ -98,6 +98,20 @@
 
 	<build>
 		<plugins>
+			<plugin>
+				<groupId>org.antlr</groupId>
+				<artifactId>antlr4-maven-plugin</artifactId>
+				<version>4.13.2</version>
+				<executions>
+					<execution>
+						<goals><goal>antlr4</goal></goals>
+					</execution>
+				</executions>
+				<configuration>
+					<visitor>true</visitor>
+					<listener>false</listener>
+				</configuration>
+			</plugin>
 			<plugin>
 				<groupId>org.springframework.boot</groupId>
 				<artifactId>spring-boot-maven-plugin</artifactId>
