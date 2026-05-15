@@ -39,6 +39,13 @@
 			<artifactId>spring-cloud-starter-netflix-eureka-client</artifactId>
 		</dependency>
 
+		<!-- JavaParser — Java AST extraction -->
+		<dependency>
+			<groupId>com.github.javaparser</groupId>
+			<artifactId>javaparser-core</artifactId>
+			<version>3.26.4</version>
+		</dependency>
+
 		<!-- MinIO SDK (S3-compatible — works with OVH Object Storage) -->
 		<dependency>
 			<groupId>io.minio</groupId>

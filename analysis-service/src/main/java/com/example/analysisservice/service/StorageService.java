@@ -10,8 +10,8 @@ import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
-import org.springframework.web.multipart.MultipartFile;
 
+import java.io.ByteArrayInputStream;
 import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
 
@@ -41,7 +41,7 @@ public class StorageService {
         }
     }
 
-    public String upload(Long projectId, MultipartFile file) {
+    public String upload(Long projectId, byte[] content) {
         String timestamp = LocalDateTime.now().format(KEY_FORMAT);
         String key = "projects/" + projectId + "/" + timestamp + "-source.zip";
 
@@ -49,10 +49,10 @@ public class StorageService {
             minioClient.putObject(PutObjectArgs.builder()
                     .bucket(bucket)
                     .object(key)
-                    .stream(file.getInputStream(), file.getSize(), -1)
+                    .stream(new ByteArrayInputStream(content), content.length, -1)
                     .contentType("application/zip")
                     .build());
-            log.info("Uploaded {} ({} bytes) → {}", file.getOriginalFilename(), file.getSize(), key);
+            log.info("Uploaded {} bytes → {}", content.length, key);
             return key;
         } catch (Exception e) {
             throw new RuntimeException("Upload failed: " + e.getMessage(), e);
