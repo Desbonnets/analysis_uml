@@ -3,7 +3,12 @@ import type { BackendAnalysisResponse } from '../types'
 import { uploadAndAnalyze } from '../api/analysis'
 import { useToast } from './ToastContext'
 
-export type AnalysisStatus = 'idle' | 'running' | 'complete' | 'error'
+export type AnalysisStatus = 'idle' | 'uploading' | 'analyzing' | 'complete' | 'error'
+
+export interface UploadProgress {
+  loaded: number
+  total: number
+}
 
 interface AnalysisState {
   projectId: number | null
@@ -11,6 +16,7 @@ interface AnalysisState {
   status: AnalysisStatus
   result: BackendAnalysisResponse | null
   error: string | null
+  uploadProgress: UploadProgress | null
 }
 
 interface AnalysisContextValue {
@@ -23,7 +29,14 @@ interface AnalysisContextValue {
 
 const AnalysisContext = createContext<AnalysisContextValue | null>(null)
 
-const IDLE: AnalysisState = { projectId: null, projectName: '', status: 'idle', result: null, error: null }
+const IDLE: AnalysisState = {
+  projectId: null,
+  projectName: '',
+  status: 'idle',
+  result: null,
+  error: null,
+  uploadProgress: null,
+}
 
 export function AnalysisProvider({ children }: { children: React.ReactNode }) {
   const [state, setState] = useState<AnalysisState>(IDLE)
@@ -31,10 +44,19 @@ export function AnalysisProvider({ children }: { children: React.ReactNode }) {
   const { showToast } = useToast()
 
   const run = useCallback(async (token: string, projectId: number, projectName: string, file: File) => {
-    setState({ projectId, projectName, status: 'running', result: null, error: null })
+    setState({ projectId, projectName, status: 'uploading', result: null, error: null, uploadProgress: null })
+
     try {
-      const result = await uploadAndAnalyze(token, projectId, file)
-      setState(prev => ({ ...prev, status: 'complete', result }))
+      const result = await uploadAndAnalyze(token, projectId, file, {
+        onUploadProgress: (loaded, total) => {
+          setState(prev => ({ ...prev, status: 'uploading', uploadProgress: { loaded, total } }))
+        },
+        onUploadDone: () => {
+          setState(prev => ({ ...prev, status: 'analyzing', uploadProgress: null }))
+        },
+      })
+
+      setState(prev => ({ ...prev, status: 'complete', result, uploadProgress: null }))
       setHasUnread(true)
       showToast(
         `Analyse de "${projectName}" terminée — ${result.filesAnalyzed} fichiers, ${result.classesFound} classes`,
@@ -42,7 +64,7 @@ export function AnalysisProvider({ children }: { children: React.ReactNode }) {
       )
     } catch (e) {
       const msg = e instanceof Error ? e.message : 'Erreur inconnue'
-      setState(prev => ({ ...prev, status: 'error', error: msg }))
+      setState(prev => ({ ...prev, status: 'error', error: msg, uploadProgress: null }))
       showToast(`Erreur lors de l'analyse : ${msg}`, 'bad')
     }
   }, [showToast])
