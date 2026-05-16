@@ -6,6 +6,7 @@ import com.example.analysisservice.model.Language;
 import com.example.analysisservice.parser.ParserFactory;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
 import org.springframework.web.multipart.MultipartFile;
@@ -22,13 +23,15 @@ import java.util.stream.Collectors;
 @RequiredArgsConstructor
 public class AnalysisService {
 
-    private static final long MAX_SIZE_BYTES = 50L * 1024 * 1024;
     private static final String ZIP_CONTENT_TYPE = "application/zip";
     private static final String ZIP_CONTENT_TYPE_ALT = "application/x-zip-compressed";
 
     private final StorageService storageService;
     private final ZipExtractorService zipExtractorService;
     private final ParserFactory parserFactory;
+
+    @Value("${analysis.upload.max-size-mb:200}")
+    private long maxSizeMb;
 
     public AnalysisResponse upload(Long projectId, MultipartFile file) {
         validateFile(file);
@@ -111,8 +114,10 @@ public class AnalysisService {
         if (file == null || file.isEmpty()) {
             throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Aucun fichier fourni");
         }
-        if (file.getSize() > MAX_SIZE_BYTES) {
-            throw new ResponseStatusException(HttpStatus.PAYLOAD_TOO_LARGE, "Fichier trop volumineux (max 50 Mo)");
+        long maxBytes = maxSizeMb * 1024 * 1024;
+        if (file.getSize() > maxBytes) {
+            throw new ResponseStatusException(HttpStatus.PAYLOAD_TOO_LARGE,
+                    "Fichier trop volumineux (max " + maxSizeMb + " Mo)");
         }
         String contentType = file.getContentType();
         String name = file.getOriginalFilename() != null ? file.getOriginalFilename() : "";
