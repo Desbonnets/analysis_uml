@@ -1,9 +1,12 @@
 import { useState, useEffect, useCallback } from 'react'
 import { useParams, Link } from 'react-router-dom'
-import { ArrowLeft, GitBranch, AlertTriangle, BarChart2, Play, Plus, Link2, Copy, Check, RefreshCw } from 'lucide-react'
+import { ArrowLeft, GitBranch, AlertTriangle, BarChart2, Plus, Link2, Copy, Check, RefreshCw } from 'lucide-react'
 import Header from '../components/layout/Header'
 import Pill from '../components/ui/Pill'
+import AnalysisCard from '../components/analysis/AnalysisCard'
+import AnalysisResultModal from '../components/analysis/AnalysisResultModal'
 import { useAuth } from '../context/AuthContext'
+import { useAnalysis } from '../context/AnalysisContext'
 import { getProjectById, generateProjectToken } from '../api/projects'
 import diagramsData from '../data/diagrams.json'
 import violationsData from '../data/violations.json'
@@ -34,11 +37,13 @@ const statusLabel: Record<string, string> = {
 export default function ProjectDetail() {
   const { id } = useParams<{ id: string }>()
   const { token, user } = useAuth()
+  const { state: analysisState } = useAnalysis()
   const [project, setProject] = useState<Project | null>(null)
   const [loading, setLoading] = useState(true)
   const [apiToken, setApiToken] = useState<string | null>(null)
   const [tokenLoading, setTokenLoading] = useState(false)
   const [copied, setCopied] = useState<string | null>(null)
+  const [showResultModal, setShowResultModal] = useState(false)
 
   useEffect(() => {
     if (!token || !id) return
@@ -87,10 +92,7 @@ export default function ProjectDetail() {
       <Header
         title={project.name}
         actions={
-          <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-            <Pill tone={statusTone[project.status]} square dot>{statusLabel[project.status]}</Pill>
-            <button className="btn btn-primary"><Play size={13} /> Lancer l'analyse</button>
-          </div>
+          <Pill tone={statusTone[project.status]} square dot>{statusLabel[project.status]}</Pill>
         }
       />
 
@@ -98,6 +100,12 @@ export default function ProjectDetail() {
         <Link to="/projects" style={{ display: 'inline-flex', alignItems: 'center', gap: 6, fontSize: 13, color: 'var(--fg-1)', textDecoration: 'none' }}>
           <ArrowLeft size={14} /> Retour aux projets
         </Link>
+
+        <AnalysisCard
+          projectId={project.id}
+          projectName={project.name}
+          onViewResult={() => setShowResultModal(true)}
+        />
 
         {project.score > 0 && (
           <div className="card">
@@ -295,6 +303,13 @@ export default function ProjectDetail() {
           </div>
         )}
       </div>
+
+      {showResultModal && analysisState.result && analysisState.projectId === project.id && (
+        <AnalysisResultModal
+          result={analysisState.result}
+          onClose={() => setShowResultModal(false)}
+        />
+      )}
     </div>
   )
 }
