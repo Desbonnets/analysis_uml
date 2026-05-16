@@ -1,0 +1,75 @@
+# ── Système d'exploitation ────────────────────────────────────────────────────
+.DS_Store
+.DS_Store?
+._*
+.Spotlight-V100
+.Trashes
+Thumbs.db
+ehthumbs.db
+desktop.ini
+
+# ── IDE ───────────────────────────────────────────────────────────────────────
+.idea/
+*.iml
+*.iws
+*.ipr
+.vscode/
+*.suo
+*.ntvs*
+*.njsproj
+*.sln
+*.sw?
+nbproject/
+.settings/
+.classpath
+.project
+.factorypath
+.springBeans
+.sts4-cache
+.apt_generated
+
+# ── Logs ──────────────────────────────────────────────────────────────────────
+*.log
+logs/
+spring-shell.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+lerna-debug.log*
+
+# ── Secrets / Variables d'environnement ───────────────────────────────────────
+# Ne JAMAIS committer de vraies credentials.
+# Les fichiers frontend/.env.development et .env.production sont volontairement
+# trackés car ils ne contiennent que des variables publiques VITE_*.
+.env
+.env.local
+.env.*.local
+*.local.properties
+application-local.properties
+application-secret.properties
+application-prod.properties
+
+# ── Maven ─────────────────────────────────────────────────────────────────────
+target/
+!**/src/main/**/target/
+!**/src/test/**/target/
+.mvn/wrapper/maven-wrapper.jar
+HELP.md
+
+# ── Node.js / Frontend ────────────────────────────────────────────────────────
+node_modules/
+dist/
+dist-ssr/
+*.local
+
+# ── Données locales Docker ────────────────────────────────────────────────────
+docker-data/
+pgdata/
+minio-data/
+volumes/
+
+# ── Fichiers temporaires ──────────────────────────────────────────────────────
+*.tmp
+*.bak
+*.orig
