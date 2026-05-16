@@ -65,6 +65,17 @@ public class AnalysisService {
 
             byLanguage.remove(Language.UNKNOWN);
 
+            if (byLanguage.isEmpty()) {
+                log.info("Project {} — no recognised language in ZIP (extensions found: {})",
+                        projectId,
+                        sourceFiles.keySet().stream()
+                                .map(f -> { int d = f.lastIndexOf('.'); return d >= 0 ? f.substring(d) : "(none)"; })
+                                .distinct().sorted().toList());
+            } else {
+                byLanguage.forEach((lang, files) ->
+                        log.info("Project {} — {} {} file(s) to parse", projectId, files.size(), lang));
+            }
+
             return byLanguage.entrySet().stream()
                     .flatMap(e -> parserFactory.getParser(e.getKey())
                             .map(parser -> {
