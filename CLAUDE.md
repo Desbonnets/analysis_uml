@@ -27,10 +27,14 @@ cd auth-service     && ./mvnw spring-boot:run   # port 8081
 cd user-service     && ./mvnw spring-boot:run   # port 8082
 cd project-service  && ./mvnw spring-boot:run   # port 8083
 cd analysis-service && ./mvnw spring-boot:run   # port 8084 (copy mvnw from project-service first)
+cd diagram-service  && ./mvnw spring-boot:run   # port 8085 (copy mvnw from project-service first)
 ```
 
-> **analysis-service** has no mvnw committed. Copy it before first run:
-> `cp project-service/mvnw analysis-service/ && cp -r project-service/.mvn analysis-service/`
+> **analysis-service** and **diagram-service** have no mvnw committed. Copy before first run:
+> ```bash
+> cp project-service/mvnw analysis-service/ && cp -r project-service/.mvn analysis-service/
+> cp project-service/mvnw diagram-service/  && cp -r project-service/.mvn diagram-service/
+> ```
 
 ### Full stack via Docker
 
@@ -51,7 +55,8 @@ Browser → frontend:3000 (Nginx in Docker)
               → auth-service:8081     (Spring Security + JPA, auth_db)
               → user-service:8082     (JPA, user_db)  ← skeleton, not yet implemented
               → project-service:8083  (JPA, projet_db — project CRUD + violations)
-              → analysis-service:8084 (stateless — ZIP upload → MinIO)
+              → analysis-service:8084 (stateless — ZIP upload → MinIO, stocke JSON historique)
+              → diagram-service:8085  (stateless — lit l'historique analysis-service via Eureka)
               ↕ Eureka discovery:8761
 
 MinIO:9000  (S3-compatible object storage — analysis-uploads bucket)
@@ -69,6 +74,7 @@ All services register with Eureka. The gateway routes by service name, not hardc
 | `/roles/**` | auth-service |
 | `/projects/**` | project-service |
 | `/analysis/**` | analysis-service |
+| `/diagrams/**` | diagram-service |
 
 ### auth-service internal layout
 
@@ -129,10 +135,13 @@ In Docker, `ProdDataSeeder` seeds a single admin user configurable via env vars 
 - `src/api/profile.ts` — `getMe`, `updateMe` → `/auth/me`
 - `src/api/users.ts` — admin CRUD → `/users/**`
 - `src/api/roles.ts` — list roles → `/roles/**`
+- `src/api/analysis.ts` — `uploadAndAnalyze`, `getAnalysisHistory` → `/analysis/**`
+- `src/api/diagrams.ts` — `getClassDiagram`, `getDependencyGraph`, `getPackageDiagram`, `getMetrics` → `/diagrams/**`
 - Auth state persisted in `localStorage` via `AuthContext` (keys: `auth_token`, `auth_user`)
 
 **Still mocked via JSON files in `src/data/`:**
-- `projects.json`, `diagrams.json`, `violations.json`, `ai-messages.json`
+- `projects.json`, `violations.json`, `ai-messages.json`
+- `diagrams.json` — conservé mais plus utilisé (DiagramsList et DiagramEditor utilisent maintenant l'API réelle)
 
 **Type source of truth:** `src/types/index.ts`
 - `AuthUser` — shape stored in localStorage and returned by `/auth/**` (role as `RoleName` string)
@@ -142,12 +151,19 @@ In Docker, `ProdDataSeeder` seeds a single admin user configurable via env vars 
 ### Frontend routing
 
 ```
-/login, /register          → public
+/login, /register                              → public
 /dashboard, /projects, /diagrams, /analysis, /ai, /settings  → ProtectedRoute (token required)
-/admin/users               → AdminRoute (role === 'admin', redirects to /dashboard otherwise)
+/diagrams                                      → DiagramsList (sélecteur projet + historique analyses)
+/diagrams/:projectId/:recordId                 → DiagramEditor (3 onglets: Classe/Dépendances/Packages)
+/admin/users                                   → AdminRoute (role === 'admin', redirects to /dashboard otherwise)
 ```
 
 `AdminRoute` in `src/components/auth/AdminRoute.tsx`. Sidebar shows the **Administration** section only when `user.role === 'admin'`.
+
+**Flux Diagrammes UML :**
+1. `DiagramsList` → sélectionne un projet → appelle `GET /analysis/{projectId}/history`
+2. Clic sur une ligne → navigue vers `/diagrams/{projectId}/{recordId}`
+3. `DiagramEditor` → appelle diagram-service à la volée → affiche SVG avec 3 onglets
 
 ### Frontend component layers
 
@@ -184,6 +200,40 @@ ZIP files are kept after analysis to allow re-runs without re-upload.
 
 **Dockerfile** uses the Maven base image (`maven:3.9-eclipse-temurin-21-alpine`) — no mvnw needed for Docker builds.
 
+### diagram-service (port 8085)
+
+Stateless service — no database. Reads analysis history from analysis-service via Eureka (RestTemplate @LoadBalanced), transforms CodeUnit/ClassDef data into diagram formats, and returns them to the frontend on demand.
+
+```
+controller/ DiagramController  (GET /diagrams/{projectId}/{class|dependencies|packages|metrics})
+service/    ClassDiagramService     (superClass→EXTENDS, interfaces→IMPLEMENTS, deps→USES interne)
+            DependencyGraphService  (tous les deps sans filtre)
+            PackageDiagramService   (grouper par packageName, arêtes inter-packages)
+            MetricsService          (agrège AnalysisHistoryEntry — pas de fetch N+1)
+client/     AnalysisClient          (forwarde le JWT de l'utilisateur vers analysis-service)
+model/      miroir des modèles analysis-service pour désérialisation JSON
+dto/        ClassDiagramDto, DependencyGraphDto, PackageDiagramDto, MetricsDto
+config/     SecurityConfig, RestClientConfig (@LoadBalanced RestTemplate)
+security/   JwtUtil, JwtAuthFilter, JwtUserDetailsService (même pattern)
+```
+
+**Endpoints:**
+```
+GET /diagrams/{projectId}/class?recordId={id}        → ClassDiagramDto (nodes + edges)
+GET /diagrams/{projectId}/dependencies?recordId={id} → DependencyGraphDto
+GET /diagrams/{projectId}/packages?recordId={id}     → PackageDiagramDto
+GET /diagrams/{projectId}/metrics                    → MetricsDto (évolution temporelle)
+```
+
+- `recordId` absent → utilise l'analyse la plus récente (1er de l'historique)
+- Tous les endpoints requirent authentification JWT
+- Le JWT de l'utilisateur est forwardé dans les appels vers analysis-service
+
+**Dockerfile** uses the Maven base image (`maven:3.9-eclipse-temurin-21-alpine`) — no mvnw needed for Docker builds.
+
+**No mvnw**: copy from project-service before running locally:
+`cp project-service/mvnw diagram-service/ && cp -r project-service/.mvn diagram-service/`
+
 ### project-service (formerly service-metier-1)
 
 Manages projects (CRUD) at `/projects/**`. JWT validation uses the same secret as auth-service. `DevDataSeeder` seeds 8 sample projects on first start (idempotent — skips if table is non-empty).
@@ -216,7 +266,7 @@ Currently an empty Spring Boot skeleton. Planned for user preferences tied to ap
 - **Spring Initializr dependency IDs**: use `cloud-eureka-server`, `cloud-eureka`, `cloud-gateway` — the older names resolve to wrong/missing artifacts.
 - **Node.js version**: Vite 8 requires Node 20.19+ or 22+. The machine currently has 20.12. `npm run build` will fail until Node is upgraded.
 - **New Spring Boot services**: each service needs its own `application-docker.properties` with datasource URL pointing to the `postgres` container and `eureka.client.service-url.defaultZone=http://eureka-server:8761/eureka/`.
-- **analysis-service has no mvnw**: copy from project-service before running locally — `cp project-service/mvnw analysis-service/ && cp -r project-service/.mvn analysis-service/`. Docker build works without it (uses Maven base image).
+- **analysis-service and diagram-service have no mvnw**: copy from project-service before running locally. Docker build works without it (uses Maven base image).
 - **MinIO bucket**: created automatically by `StorageService@PostConstruct` on startup. If MinIO is unreachable, the service fails to start — start MinIO first.
 - **Role migration**: `AppUser.role` is now a FK (`role_id`). With `ddl-auto=update`, the old `role VARCHAR` column is NOT dropped automatically. On a fresh DB this is fine; on an existing dev DB, drop and recreate `auth_db` before first run.
 - **Password constraint** (register + admin create): min 12 chars, requires uppercase + lowercase + digit + special char. Regex: `^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[^a-zA-Z0-9]).{12,}$`

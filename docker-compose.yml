@@ -164,6 +164,22 @@ services:
       eureka-server:
         condition: service_healthy
 
+  # ─── Diagram Service ──────────────────────────────────────────────
+
+  diagram-service:
+    build: ./diagram-service
+    container_name: diagram-service
+    ports:
+      - "8085:8085"
+    environment:
+      - SPRING_PROFILES_ACTIVE=docker
+      - EUREKA_CLIENT_SERVICEURL_DEFAULTZONE=http://eureka-server:8761/eureka/
+    networks:
+      - backend-network
+    depends_on:
+      eureka-server:
+        condition: service_healthy
+
   # ─── Frontend ──────────────────────────────────────────────────────
 
   frontend:
