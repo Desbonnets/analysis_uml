@@ -20,3 +20,7 @@ export function updateProject(token: string, id: number, payload: UpdateProjectR
 export function deleteProject(token: string, id: number): Promise<void> {
   return apiRequest<void>(`/projects/${id}`, { method: 'DELETE' }, token)
 }
+
+export function generateProjectToken(token: string, id: number): Promise<{ token: string }> {
+  return apiRequest<{ token: string }>(`/projects/${id}/token`, { method: 'POST' }, token)
+}

@@ -92,6 +92,15 @@ function CreateModal({ token, onClose, onCreated }: CreateModalProps) {
             />
           </div>
           <div className="field">
+            <label>URL du dépôt <span style={{ color: 'var(--fg-2)', fontWeight: 400 }}>(optionnel)</span></label>
+            <input
+              style={inputStyle}
+              value={form.repositoryUrl ?? ''}
+              onChange={e => setForm(f => ({ ...f, repositoryUrl: e.target.value || undefined }))}
+              placeholder="https://github.com/org/repo"
+            />
+          </div>
+          <div className="field">
             <label>Langage / Framework</label>
             <select
               style={{ ...inputStyle, borderColor: errors.language ? 'var(--bad)' : undefined }}

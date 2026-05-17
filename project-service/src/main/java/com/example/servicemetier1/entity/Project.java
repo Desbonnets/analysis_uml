@@ -49,6 +49,12 @@ public class Project {
     @Builder.Default
     private int violationsCount = 0;
 
+    @Column(name = "repository_url")
+    private String repositoryUrl;
+
+    @Column(name = "api_token", unique = true)
+    private String apiToken;
+
     @Column(name = "created_at")
     private LocalDateTime createdAt;
 

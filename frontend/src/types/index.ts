@@ -11,12 +11,15 @@ export interface Project {
   violationsCount: number
   ownerEmail: string
   ownerName: string
+  repositoryUrl?: string
+  hasApiToken?: boolean
 }
 
 export interface CreateProjectRequest {
   name: string
   description: string
   language: string
+  repositoryUrl?: string
 }
 
 export interface UpdateProjectRequest {
@@ -163,4 +166,52 @@ export interface AnalysisResult {
     cohesion: number
     patterns: number
   }
+}
+
+// Backend analysis response types
+export interface FieldDef {
+  name: string
+  type: string
+  visibility: string
+  isStatic: boolean
+  isFinal: boolean
+}
+
+export interface MethodDef {
+  name: string
+  returnType: string
+  visibility: string
+  parameterTypes: string[]
+  isStatic: boolean
+  isAbstract: boolean
+}
+
+export interface ClassDef {
+  name: string
+  qualifiedName: string
+  type: 'CLASS' | 'ABSTRACT_CLASS' | 'INTERFACE' | 'ENUM' | 'RECORD' | 'ANNOTATION'
+  visibility: string
+  superClass?: string
+  interfaces: string[]
+  methods: MethodDef[]
+  fields: FieldDef[]
+  dependencies: string[]
+}
+
+export interface CodeUnit {
+  fileName: string
+  packageName: string
+  language: string
+  imports: string[]
+  classes: ClassDef[]
+}
+
+export interface BackendAnalysisResponse {
+  projectId: number
+  storageKey: string
+  status: string
+  message: string
+  filesAnalyzed: number
+  classesFound: number
+  codeUnits: CodeUnit[]
 }

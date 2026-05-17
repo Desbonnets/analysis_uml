@@ -11,4 +11,5 @@ public class UpdateProjectRequest {
     private Integer score;
     private Integer diagramsCount;
     private Integer violationsCount;
+    private String repositoryUrl;
 }

@@ -21,18 +21,22 @@ npm run build      # tsc -b && vite build (blocked by Node version)
 ### Backend — run each service individually (dev mode)
 
 ```bash
-cd eureka-server   && ./mvnw spring-boot:run   # Start first — port 8761
-cd gateway         && ./mvnw spring-boot:run   # port 8080
-cd auth-service    && ./mvnw spring-boot:run   # port 8081
-cd user-service    && ./mvnw spring-boot:run   # port 8082
-cd project-service && ./mvnw spring-boot:run   # port 8083
+cd eureka-server    && ./mvnw spring-boot:run   # Start first — port 8761
+cd gateway          && ./mvnw spring-boot:run   # port 8080
+cd auth-service     && ./mvnw spring-boot:run   # port 8081
+cd user-service     && ./mvnw spring-boot:run   # port 8082
+cd project-service  && ./mvnw spring-boot:run   # port 8083
+cd analysis-service && ./mvnw spring-boot:run   # port 8084 (copy mvnw from project-service first)
 ```
+
+> **analysis-service** has no mvnw committed. Copy it before first run:
+> `cp project-service/mvnw analysis-service/ && cp -r project-service/.mvn analysis-service/`
 
 ### Full stack via Docker
 
 ```bash
-docker-compose up --build                       # Build and start all services
-docker-compose up -d postgres eureka-server     # Start infra only
+docker-compose up --build                              # Build and start all services
+docker-compose up -d postgres minio eureka-server      # Start infra only
 ./mvnw test                                     # All tests for one service (run from service dir)
 ./mvnw test -Dtest=MyTest                       # Single test class
 ```
@@ -44,10 +48,14 @@ docker-compose up -d postgres eureka-server     # Start infra only
 ```
 Browser → frontend:3000 (Nginx in Docker)
          → gateway:8080 (Spring Cloud Gateway, reactive)
-              → auth-service:8081    (Spring Security + JPA, auth_db)
-              → user-service:8082    (JPA, user_db)  ← skeleton, not yet implemented
-              → project-service:8083 (JPA, projet_db — project CRUD)
+              → auth-service:8081     (Spring Security + JPA, auth_db)
+              → user-service:8082     (JPA, user_db)  ← skeleton, not yet implemented
+              → project-service:8083  (JPA, projet_db — project CRUD + violations)
+              → analysis-service:8084 (stateless — ZIP upload → MinIO)
               ↕ Eureka discovery:8761
+
+MinIO:9000  (S3-compatible object storage — analysis-uploads bucket)
+MinIO:9001  (web console — minioadmin / minioadmin in dev)
 ```
 
 All services register with Eureka. The gateway routes by service name, not hardcoded URLs.
@@ -60,6 +68,7 @@ All services register with Eureka. The gateway routes by service name, not hardc
 | `/users/**` | auth-service |
 | `/roles/**` | auth-service |
 | `/projects/**` | project-service |
+| `/analysis/**` | analysis-service |
 
 ### auth-service internal layout
 
@@ -148,21 +157,53 @@ In Docker, `ProdDataSeeder` seeds a single admin user configurable via env vars 
 - `src/pages/` — one file per route
 - `src/pages/admin/` — admin-only pages (`Users.tsx` — full CRUD table)
 
+### analysis-service (port 8084)
+
+Stateless service — no database. Receives ZIP uploads, stores them in MinIO, will orchestrate code analysis (JavaParser) in a future iteration.
+
+```
+controller/ AnalysisController  (POST /analysis/{projectId} — multipart, JWT required)
+service/    AnalysisService     (validates file: ZIP only, max 50 MB)
+            StorageService      (uploads to MinIO, auto-creates bucket on startup)
+config/     MinioConfig         (MinioClient bean, configured via env vars)
+            SecurityConfig
+security/   JwtUtil, JwtAuthFilter, JwtUserDetailsService (stateless — same pattern as project-service)
+```
+
+**MinIO configuration (env vars):**
+```
+MINIO_ENDPOINT   — http://localhost:9000 (dev) | https://s3.gra.cloud.ovh.net (OVH prod)
+MINIO_ACCESS_KEY
+MINIO_SECRET_KEY
+MINIO_BUCKET     — analysis-uploads (default)
+```
+
+**Storage key format:** `projects/{projectId}/{timestamp}-source.zip`
+
+ZIP files are kept after analysis to allow re-runs without re-upload.
+
+**Dockerfile** uses the Maven base image (`maven:3.9-eclipse-temurin-21-alpine`) — no mvnw needed for Docker builds.
+
 ### project-service (formerly service-metier-1)
 
 Manages projects (CRUD) at `/projects/**`. JWT validation uses the same secret as auth-service. `DevDataSeeder` seeds 8 sample projects on first start (idempotent — skips if table is non-empty).
 
 ```
-entity/     Project (projects table)
+entity/     Project (projects table — includes repositoryUrl, apiToken)
 repository/ ProjectRepository
 dto/        ProjectDto, CreateProjectRequest, UpdateProjectRequest
-service/    ProjectService (CRUD, owner-only update/delete)
+            GenerateTokenResponse, SubmitAnalysisRequest
+service/    ProjectService (CRUD, owner-only update/delete, token generation, analysis report)
 controller/ ProjectController (/projects/**)
 security/   JwtUtil, JwtAuthFilter, JwtUserDetailsService (stateless — no user DB)
 config/     SecurityConfig, DevDataSeeder
 ```
 
 Authorization: all authenticated users can list/read all projects; update/delete restricted to the project owner (`ownerEmail` == JWT subject).
+
+**CI integration endpoints:**
+- `POST /projects/{id}/token` — generate/regenerate API token (JWT auth, owner only)
+- `POST /projects/{id}/report` — receive CI analysis report (no JWT, `X-Project-Token` header)
 
 ### user-service
 
@@ -175,6 +216,8 @@ Currently an empty Spring Boot skeleton. Planned for user preferences tied to ap
 - **Spring Initializr dependency IDs**: use `cloud-eureka-server`, `cloud-eureka`, `cloud-gateway` — the older names resolve to wrong/missing artifacts.
 - **Node.js version**: Vite 8 requires Node 20.19+ or 22+. The machine currently has 20.12. `npm run build` will fail until Node is upgraded.
 - **New Spring Boot services**: each service needs its own `application-docker.properties` with datasource URL pointing to the `postgres` container and `eureka.client.service-url.defaultZone=http://eureka-server:8761/eureka/`.
+- **analysis-service has no mvnw**: copy from project-service before running locally — `cp project-service/mvnw analysis-service/ && cp -r project-service/.mvn analysis-service/`. Docker build works without it (uses Maven base image).
+- **MinIO bucket**: created automatically by `StorageService@PostConstruct` on startup. If MinIO is unreachable, the service fails to start — start MinIO first.
 - **Role migration**: `AppUser.role` is now a FK (`role_id`). With `ddl-auto=update`, the old `role VARCHAR` column is NOT dropped automatically. On a fresh DB this is fine; on an existing dev DB, drop and recreate `auth_db` before first run.
 - **Password constraint** (register + admin create): min 12 chars, requires uppercase + lowercase + digit + special char. Regex: `^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[^a-zA-Z0-9]).{12,}$`
 - **Email change logs out the user**: JWT contains the old email. After changing email via `PUT /auth/me`, the current token becomes invalid on the next authenticated request. The user must log in again.

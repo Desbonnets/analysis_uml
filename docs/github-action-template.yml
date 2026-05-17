@@ -1,0 +1,64 @@
+name: UML Analysis Report
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+env:
+  PLATFORM_URL: https://your-platform-url  # Replace with your deployed platform URL
+  PROJECT_ID: 1                             # Replace with your project ID
+
+jobs:
+  analyze:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      # ── Run your analysis tools here ───────────────────────────────────
+      # Example with PMD (Java):
+      # - name: Run PMD
+      #   run: |
+      #     wget -q https://github.com/pmd/pmd/releases/download/pmd_releases%2F7.0.0/pmd-dist-7.0.0-bin.zip
+      #     unzip -q pmd-dist-7.0.0-bin.zip
+      #     pmd-bin-7.0.0/bin/pmd check -d src -R rulesets/java/quickstart.xml -f json > pmd-report.json || true
+      #
+      # Example with Checkstyle:
+      # - name: Run Checkstyle
+      #   uses: nikitasavinov/checkstyle-action@master
+
+      # ── Compute metrics and send to platform ───────────────────────────
+      - name: Send analysis report
+        uses: actions/github-script@v7
+        env:
+          UML_PROJECT_TOKEN: ${{ secrets.UML_PROJECT_TOKEN }}
+        with:
+          script: |
+            // Replace these with values computed from your analysis tools
+            const score = 80
+            const violationsCount = 3
+            const diagramsCount = 5
+
+            const res = await fetch(
+              `${process.env.PLATFORM_URL}/projects/${process.env.PROJECT_ID}/report`,
+              {
+                method: 'POST',
+                headers: {
+                  'Content-Type': 'application/json',
+                  'X-Project-Token': process.env.UML_PROJECT_TOKEN
+                },
+                body: JSON.stringify({
+                  score,
+                  violationsCount,
+                  diagramsCount,
+                  status: 'analyzed'
+                })
+              }
+            )
+
+            if (!res.ok) {
+              core.setFailed(`Report failed with status ${res.status}`)
+            } else {
+              core.info('Analysis report sent successfully')
+            }

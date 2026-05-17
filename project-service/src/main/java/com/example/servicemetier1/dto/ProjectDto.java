@@ -18,6 +18,8 @@ public class ProjectDto {
     private int score;
     private int diagramsCount;
     private int violationsCount;
+    private String repositoryUrl;
+    private boolean hasApiToken;
     private LocalDateTime createdAt;
     private LocalDateTime updatedAt;
 }

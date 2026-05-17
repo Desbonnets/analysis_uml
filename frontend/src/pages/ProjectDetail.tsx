@@ -1,10 +1,13 @@
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useCallback } from 'react'
 import { useParams, Link } from 'react-router-dom'
-import { ArrowLeft, GitBranch, AlertTriangle, BarChart2, Play, Plus } from 'lucide-react'
+import { ArrowLeft, GitBranch, AlertTriangle, BarChart2, Plus, Link2, Copy, Check, RefreshCw } from 'lucide-react'
 import Header from '../components/layout/Header'
 import Pill from '../components/ui/Pill'
+import AnalysisCard from '../components/analysis/AnalysisCard'
+import AnalysisResultModal from '../components/analysis/AnalysisResultModal'
 import { useAuth } from '../context/AuthContext'
-import { getProjectById } from '../api/projects'
+import { useAnalysis } from '../context/AnalysisContext'
+import { getProjectById, generateProjectToken } from '../api/projects'
 import diagramsData from '../data/diagrams.json'
 import violationsData from '../data/violations.json'
 import type { Project, Diagram, Violation } from '../types'
@@ -33,9 +36,14 @@ const statusLabel: Record<string, string> = {
 
 export default function ProjectDetail() {
   const { id } = useParams<{ id: string }>()
-  const { token } = useAuth()
+  const { token, user } = useAuth()
+  const { state: analysisState } = useAnalysis()
   const [project, setProject] = useState<Project | null>(null)
   const [loading, setLoading] = useState(true)
+  const [apiToken, setApiToken] = useState<string | null>(null)
+  const [tokenLoading, setTokenLoading] = useState(false)
+  const [copied, setCopied] = useState<string | null>(null)
+  const [showResultModal, setShowResultModal] = useState(false)
 
   useEffect(() => {
     if (!token || !id) return
@@ -44,6 +52,25 @@ export default function ProjectDetail() {
       .catch(() => setProject(null))
       .finally(() => setLoading(false))
   }, [token, id])
+
+  const handleGenerateToken = useCallback(async () => {
+    if (!token || !id) return
+    setTokenLoading(true)
+    try {
+      const res = await generateProjectToken(token, parseInt(id, 10))
+      setApiToken(res.token)
+      setProject(p => p ? { ...p, hasApiToken: true } : p)
+    } finally {
+      setTokenLoading(false)
+    }
+  }, [token, id])
+
+  const copyToClipboard = useCallback((text: string, key: string) => {
+    void navigator.clipboard.writeText(text).then(() => {
+      setCopied(key)
+      setTimeout(() => setCopied(null), 2000)
+    })
+  }, [])
 
   const projectDiagrams  = diagrams.filter(d => d.projectId === id)
   const projectViolations = violations.filter(v => v.projectId === id)
@@ -65,10 +92,7 @@ export default function ProjectDetail() {
       <Header
         title={project.name}
         actions={
-          <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-            <Pill tone={statusTone[project.status]} square dot>{statusLabel[project.status]}</Pill>
-            <button className="btn btn-primary"><Play size={13} /> Lancer l'analyse</button>
-          </div>
+          <Pill tone={statusTone[project.status]} square dot>{statusLabel[project.status]}</Pill>
         }
       />
 
@@ -76,6 +100,12 @@ export default function ProjectDetail() {
         <Link to="/projects" style={{ display: 'inline-flex', alignItems: 'center', gap: 6, fontSize: 13, color: 'var(--fg-1)', textDecoration: 'none' }}>
           <ArrowLeft size={14} /> Retour aux projets
         </Link>
+
+        <AnalysisCard
+          projectId={project.id}
+          projectName={project.name}
+          onViewResult={() => setShowResultModal(true)}
+        />
 
         {project.score > 0 && (
           <div className="card">
@@ -179,7 +209,107 @@ export default function ProjectDetail() {
             )}
           </div>
         </div>
+        {project.ownerEmail === user?.email && (
+          <div className="card">
+            <h3 style={{ margin: '0 0 16px', fontSize: 14, fontWeight: 600, color: 'var(--fg-0)', display: 'flex', alignItems: 'center', gap: 8 }}>
+              <Link2 size={14} style={{ color: 'var(--accent)' }} /> Intégration CI
+            </h3>
+
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
+              {project.repositoryUrl && (
+                <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                  <span style={{ fontSize: 12, color: 'var(--fg-2)', flexShrink: 0 }}>Dépôt :</span>
+                  <a href={project.repositoryUrl} target="_blank" rel="noreferrer"
+                    style={{ fontSize: 12, color: 'var(--accent)', textDecoration: 'none', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                    {project.repositoryUrl}
+                  </a>
+                </div>
+              )}
+
+              <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                <span style={{ fontSize: 12, color: 'var(--fg-2)', flexShrink: 0 }}>Token API :</span>
+                {apiToken ? (
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 6, flex: 1, minWidth: 0 }}>
+                    <code style={{ fontFamily: 'var(--font-mono)', fontSize: 11, background: 'var(--bg-0)', padding: '4px 8px', borderRadius: 4, flex: 1, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', color: 'var(--fg-0)' }}>
+                      {apiToken}
+                    </code>
+                    <button
+                      onClick={() => copyToClipboard(apiToken, 'token')}
+                      style={{ background: 'none', border: 'none', cursor: 'pointer', color: copied === 'token' ? 'var(--ok)' : 'var(--fg-2)', flexShrink: 0 }}
+                    >
+                      {copied === 'token' ? <Check size={14} /> : <Copy size={14} />}
+                    </button>
+                  </div>
+                ) : (
+                  <span style={{ fontSize: 12, color: 'var(--fg-2)' }}>
+                    {project.hasApiToken ? '••••••••••••••••••••••••••••••••••••' : 'Aucun token généré'}
+                  </span>
+                )}
+                <button
+                  className="btn btn-secondary btn-sm"
+                  onClick={handleGenerateToken}
+                  disabled={tokenLoading}
+                  style={{ flexShrink: 0 }}
+                >
+                  <RefreshCw size={12} /> {project.hasApiToken ? 'Regénérer' : 'Générer'}
+                </button>
+              </div>
+
+              {(project.hasApiToken || apiToken) && (
+                <div>
+                  <p style={{ fontSize: 12, color: 'var(--fg-1)', margin: '0 0 8px' }}>
+                    Ajoute ce step dans ton workflow GitHub Actions :
+                  </p>
+                  <div style={{ position: 'relative' }}>
+                    <pre style={{ margin: 0, padding: '12px 36px 12px 14px', background: 'var(--bg-0)', borderRadius: 6, fontSize: 11, fontFamily: 'var(--font-mono)', color: 'var(--fg-1)', overflow: 'auto', lineHeight: 1.6, border: '1px solid var(--line-1)' }}>
+{`- name: Send analysis to UML Analysis
+  uses: actions/github-script@v7
+  with:
+    script: |
+      const res = await fetch(
+        'http://your-platform/projects/${id}/report',
+        {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'X-Project-Token': '\${{ secrets.UML_PROJECT_TOKEN }}'
+          },
+          body: JSON.stringify({
+            score: \${{ env.ANALYSIS_SCORE }},
+            violationsCount: \${{ env.VIOLATIONS_COUNT }},
+            diagramsCount: \${{ env.DIAGRAMS_COUNT }},
+            status: 'analyzed'
+          })
+        }
+      )
+      if (!res.ok) core.setFailed('Analysis report failed')`}
+                    </pre>
+                    <button
+                      onClick={() => copyToClipboard(
+                        `- name: Send analysis to UML Analysis\n  uses: actions/github-script@v7\n  with:\n    script: |\n      const res = await fetch(\n        'http://your-platform/projects/${id}/report',\n        {\n          method: 'POST',\n          headers: {\n            'Content-Type': 'application/json',\n            'X-Project-Token': '\${{ secrets.UML_PROJECT_TOKEN }}'\n          },\n          body: JSON.stringify({\n            score: \${{ env.ANALYSIS_SCORE }},\n            violationsCount: \${{ env.VIOLATIONS_COUNT }},\n            diagramsCount: \${{ env.DIAGRAMS_COUNT }},\n            status: 'analyzed'\n          })\n        }\n      )\n      if (!res.ok) core.setFailed('Analysis report failed')`,
+                        'yaml'
+                      )}
+                      style={{ position: 'absolute', top: 8, right: 8, background: 'var(--bg-1)', border: '1px solid var(--line-1)', borderRadius: 4, padding: '4px 6px', cursor: 'pointer', color: copied === 'yaml' ? 'var(--ok)' : 'var(--fg-2)' }}
+                    >
+                      {copied === 'yaml' ? <Check size={12} /> : <Copy size={12} />}
+                    </button>
+                  </div>
+                  <p style={{ fontSize: 11, color: 'var(--fg-2)', margin: '8px 0 0' }}>
+                    Configure le secret <code style={{ fontFamily: 'var(--font-mono)' }}>UML_PROJECT_TOKEN</code> dans les Settings de ton dépôt GitHub.
+                  </p>
+                </div>
+              )}
+            </div>
+          </div>
+        )}
       </div>
+
+      {showResultModal && analysisState.result && analysisState.projectId === project.id && (
+        <AnalysisResultModal
+          result={analysisState.result}
+          onClose={() => setShowResultModal(false)}
+        />
+      )}
     </div>
   )
 }
