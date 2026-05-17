@@ -323,8 +323,15 @@ export default function DiagramEditor() {
         )}
         {error && !loading && (
           <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', height: '100%' }}>
-            <div className="card" style={{ borderColor: 'var(--bad)', padding: '16px 20px', maxWidth: 400, textAlign: 'center' }}>
-              <p style={{ margin: 0, fontSize: 13, color: 'var(--bad)' }}>{error}</p>
+            <div className="card" style={{ borderColor: 'var(--bad)', padding: '20px 24px', maxWidth: 440, textAlign: 'center' }}>
+              <p style={{ margin: '0 0 6px', fontSize: 13, color: 'var(--bad)', fontWeight: 600 }}>Impossible de charger le diagramme</p>
+              <p style={{ margin: 0, fontSize: 12, color: 'var(--fg-2)' }}>
+                {error.toLowerCase().includes('not found') || error.toLowerCase().includes('introuvable')
+                  ? "L'analyse demandée est introuvable. Vérifiez que le diagram-service est démarré (docker-compose up --build diagram-service)."
+                  : error.toLowerCase().includes('indisponible') || error.toLowerCase().includes('unavailable')
+                    ? "Le diagram-service n'est pas joignable. Lancez : docker-compose up --build diagram-service"
+                    : error}
+              </p>
             </div>
           </div>
         )}
