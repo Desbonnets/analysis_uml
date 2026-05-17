@@ -207,6 +207,7 @@ export interface CodeUnit {
 }
 
 export interface BackendAnalysisResponse {
+  recordId: string
   projectId: number
   storageKey: string
   status: string
@@ -214,6 +215,7 @@ export interface BackendAnalysisResponse {
   filesAnalyzed: number
   classesFound: number
   codeUnits: CodeUnit[]
+  unsupportedLanguages?: string[]
 }
 
 export interface AnalysisHistoryEntry {

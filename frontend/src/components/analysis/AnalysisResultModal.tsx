@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react'
-import { X, Copy, Check } from 'lucide-react'
+import { useNavigate } from 'react-router-dom'
+import { X, Copy, Check, LayoutTemplate } from 'lucide-react'
 import type { BackendAnalysisResponse } from '../../types'
 
 interface Props {
@@ -90,6 +91,7 @@ function toText(r: BackendAnalysisResponse): string {
 export default function AnalysisResultModal({ result, onClose }: Props) {
   const [format, setFormat] = useState<Format>('json')
   const [copied, setCopied] = useState(false)
+  const navigate = useNavigate()
 
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => { if (e.key === 'Escape') onClose() }
@@ -149,11 +151,19 @@ export default function AnalysisResultModal({ result, onClose }: Props) {
           </button>
         </div>
         {/* Stats row */}
-        <div style={{ display: 'flex', gap: 20, padding: '10px 18px', borderBottom: '1px solid var(--line-1)', flexShrink: 0 }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 20, padding: '10px 18px', borderBottom: '1px solid var(--line-1)', flexShrink: 0 }}>
           <span style={{ fontSize: 12, color: 'var(--fg-2)' }}>Fichiers : <strong style={{ color: 'var(--fg-0)' }}>{result.filesAnalyzed}</strong></span>
           <span style={{ fontSize: 12, color: 'var(--fg-2)' }}>Classes : <strong style={{ color: 'var(--fg-0)' }}>{result.classesFound}</strong></span>
           <span style={{ fontSize: 12, color: 'var(--fg-2)' }}>Statut : <strong style={{ color: 'var(--ok)' }}>{result.status}</strong></span>
           {result.message && <span style={{ fontSize: 12, color: 'var(--fg-2)', flex: 1, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{result.message}</span>}
+          {result.recordId && (
+            <button
+              onClick={() => { onClose(); navigate(`/diagrams/${result.projectId}/${result.recordId}`) }}
+              style={{ marginLeft: 'auto', display: 'flex', alignItems: 'center', gap: 6, padding: '6px 14px', borderRadius: 6, border: 'none', cursor: 'pointer', background: 'var(--accent)', color: '#fff', fontSize: 12, fontWeight: 600, flexShrink: 0 }}
+            >
+              <LayoutTemplate size={13} /> Voir le diagramme UML
+            </button>
+          )}
         </div>
         {/* Content */}
         <div style={{ flex: 1, overflow: 'auto', padding: '14px 18px' }}>
