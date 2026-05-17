@@ -16,4 +16,5 @@ public class AnalysisResponse {
     private int filesAnalyzed;
     private int classesFound;
     private List<CodeUnit> codeUnits;
+    @Builder.Default private List<String> unsupportedLanguages = new java.util.ArrayList<>();
 }

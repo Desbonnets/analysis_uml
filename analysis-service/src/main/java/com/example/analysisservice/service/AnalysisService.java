@@ -39,23 +39,38 @@ public class AnalysisService {
         byte[] zipContent = readBytes(file);
         String storageKey = storageService.upload(projectId, zipContent);
 
-        List<CodeUnit> codeUnits = analyzeZip(projectId, zipContent);
+        List<String> unsupportedLanguages = new java.util.ArrayList<>();
+        List<CodeUnit> codeUnits = analyzeZip(projectId, zipContent, unsupportedLanguages);
         int classesFound = codeUnits.stream().mapToInt(u -> u.getClasses().size()).sum();
 
-        log.info("Project {} — {} files parsed, {} classes found", projectId, codeUnits.size(), classesFound);
+        log.info("Project {} — {} files parsed, {} classes found, unsupported: {}",
+                projectId, codeUnits.size(), classesFound, unsupportedLanguages);
 
         return AnalysisResponse.builder()
                 .projectId(projectId)
                 .storageKey(storageKey)
                 .status("analyzed")
-                .message("Analyse terminée : " + codeUnits.size() + " fichier(s), " + classesFound + " classe(s) détectée(s).")
+                .message(buildMessage(codeUnits.size(), classesFound, unsupportedLanguages))
                 .filesAnalyzed(codeUnits.size())
                 .classesFound(classesFound)
                 .codeUnits(codeUnits)
+                .unsupportedLanguages(unsupportedLanguages)
                 .build();
     }
 
-    private List<CodeUnit> analyzeZip(Long projectId, byte[] zipContent) {
+    private String buildMessage(int filesAnalyzed, int classesFound, List<String> unsupportedLanguages) {
+        StringBuilder sb = new StringBuilder();
+        sb.append("Analyse terminée : ")
+          .append(filesAnalyzed).append(" fichier(s), ")
+          .append(classesFound).append(" classe(s) détectée(s).");
+        if (!unsupportedLanguages.isEmpty()) {
+            sb.append(" Langage(s) non supporté(s) : ")
+              .append(String.join(", ", unsupportedLanguages)).append(".");
+        }
+        return sb.toString();
+    }
+
+    private List<CodeUnit> analyzeZip(Long projectId, byte[] zipContent, List<String> unsupportedLanguages) {
         try {
             Map<String, byte[]> sourceFiles =
                     zipExtractorService.extractSourceFiles(new ByteArrayInputStream(zipContent));
@@ -90,7 +105,8 @@ public class AnalysisService {
                                 }
                             })
                             .orElseGet(() -> {
-                                log.debug("No parser registered for language {}", e.getKey());
+                                log.info("No parser registered for language {}", e.getKey());
+                                unsupportedLanguages.add(e.getKey().name().toLowerCase());
                                 return List.<CodeUnit>of();
                             })
                             .stream())
