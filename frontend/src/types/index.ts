@@ -207,6 +207,7 @@ export interface CodeUnit {
 }
 
 export interface BackendAnalysisResponse {
+  recordId: string
   projectId: number
   storageKey: string
   status: string
@@ -214,4 +215,75 @@ export interface BackendAnalysisResponse {
   filesAnalyzed: number
   classesFound: number
   codeUnits: CodeUnit[]
+  unsupportedLanguages?: string[]
+}
+
+export interface AnalysisHistoryEntry {
+  recordId: string
+  projectId: number
+  projectName: string
+  analyzedAt: string
+  filesAnalyzed: number
+  classesFound: number
+  unsupportedLanguages: string[]
+}
+
+export interface DiagramNode {
+  id: string
+  name: string
+  qualifiedName: string
+  type: string
+  packageName: string
+  fields: string[]
+  methods: string[]
+}
+
+export interface DiagramEdge {
+  from: string
+  to: string
+  type: string
+}
+
+export interface ClassDiagramDto {
+  projectId: number
+  recordId: string
+  generatedAt: string
+  nodes: DiagramNode[]
+  edges: DiagramEdge[]
+}
+
+export interface DependencyGraphDto {
+  projectId: number
+  recordId: string
+  generatedAt: string
+  nodes: DiagramNode[]
+  edges: DiagramEdge[]
+}
+
+export interface PackageNode {
+  name: string
+  classCount: number
+  classes: string[]
+  dependsOn: string[]
+}
+
+export interface PackageDiagramDto {
+  projectId: number
+  recordId: string
+  generatedAt: string
+  packages: PackageNode[]
+  edges: DiagramEdge[]
+}
+
+export interface MetricPoint {
+  recordId: string
+  analyzedAt: string
+  projectName: string
+  filesAnalyzed: number
+  classesFound: number
+}
+
+export interface MetricsDto {
+  projectId: number
+  dataPoints: MetricPoint[]
 }

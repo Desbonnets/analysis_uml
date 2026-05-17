@@ -1,5 +1,9 @@
-import { API_BASE } from './_request'
-import type { BackendAnalysisResponse } from '../types'
+import { API_BASE, apiRequest } from './_request'
+import type { AnalysisHistoryEntry, BackendAnalysisResponse } from '../types'
+
+export function getAnalysisHistory(token: string, projectId: number): Promise<AnalysisHistoryEntry[]> {
+  return apiRequest<AnalysisHistoryEntry[]>(`/analysis/${projectId}/history`, {}, token)
+}
 
 interface UploadOpts {
   onUploadProgress?: (loaded: number, total: number) => void
