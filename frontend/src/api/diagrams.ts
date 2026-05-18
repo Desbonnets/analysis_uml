@@ -1,18 +1,18 @@
 import { apiRequest } from './_request'
 import type { ClassDiagramDto, DependencyGraphDto, MetricsDto, PackageDiagramDto } from '../types'
 
-export function getClassDiagram(token: string, projectId: number, recordId: string): Promise<ClassDiagramDto> {
-  return apiRequest<ClassDiagramDto>(`/diagrams/${projectId}/class?recordId=${recordId}`, {}, token)
+export function getClassDiagram(projectId: number, recordId: string): Promise<ClassDiagramDto> {
+  return apiRequest<ClassDiagramDto>(`/diagrams/${projectId}/class?recordId=${recordId}`)
 }
 
-export function getDependencyGraph(token: string, projectId: number, recordId: string): Promise<DependencyGraphDto> {
-  return apiRequest<DependencyGraphDto>(`/diagrams/${projectId}/dependencies?recordId=${recordId}`, {}, token)
+export function getDependencyGraph(projectId: number, recordId: string): Promise<DependencyGraphDto> {
+  return apiRequest<DependencyGraphDto>(`/diagrams/${projectId}/dependencies?recordId=${recordId}`)
 }
 
-export function getPackageDiagram(token: string, projectId: number, recordId: string): Promise<PackageDiagramDto> {
-  return apiRequest<PackageDiagramDto>(`/diagrams/${projectId}/packages?recordId=${recordId}`, {}, token)
+export function getPackageDiagram(projectId: number, recordId: string): Promise<PackageDiagramDto> {
+  return apiRequest<PackageDiagramDto>(`/diagrams/${projectId}/packages?recordId=${recordId}`)
 }
 
-export function getMetrics(token: string, projectId: number): Promise<MetricsDto> {
-  return apiRequest<MetricsDto>(`/diagrams/${projectId}/metrics`, {}, token)
+export function getMetrics(projectId: number): Promise<MetricsDto> {
+  return apiRequest<MetricsDto>(`/diagrams/${projectId}/metrics`)
 }

@@ -1,7 +1,6 @@
 import { useEffect, useState } from 'react'
 import { useParams, Link } from 'react-router-dom'
 import { ArrowLeft, Download, ZoomIn, ZoomOut, Maximize2 } from 'lucide-react'
-import { useAuth } from '../context/AuthContext'
 import { getClassDiagram, getDependencyGraph, getPackageDiagram } from '../api/diagrams'
 import type { ClassDiagramDto, DependencyGraphDto, DiagramEdge, DiagramNode, PackageDiagramDto, PackageNode } from '../types'
 
@@ -212,7 +211,6 @@ type Tab = 'class' | 'dependencies' | 'packages'
 
 export default function DiagramEditor() {
   const { projectId, recordId } = useParams<{ projectId: string; recordId: string }>()
-  const { token } = useAuth()
   const [tab, setTab] = useState<Tab>('class')
   const [zoom, setZoom] = useState(1)
   const [loading, setLoading] = useState(false)
@@ -222,33 +220,33 @@ export default function DiagramEditor() {
   const [pkgDiagram, setPkgDiagram] = useState<PackageDiagramDto | null>(null)
 
   useEffect(() => {
-    if (!token || !projectId || !recordId) return
+    if (!projectId || !recordId) return
 
     const pid = Number(projectId)
 
     if (tab === 'class' && !classDiagram) {
       setLoading(true)
       setError(null)
-      getClassDiagram(token, pid, recordId)
+      getClassDiagram(pid, recordId)
         .then(setClassDiagram)
         .catch(e => setError((e as Error).message))
         .finally(() => setLoading(false))
     } else if (tab === 'dependencies' && !depGraph) {
       setLoading(true)
       setError(null)
-      getDependencyGraph(token, pid, recordId)
+      getDependencyGraph(pid, recordId)
         .then(setDepGraph)
         .catch(e => setError((e as Error).message))
         .finally(() => setLoading(false))
     } else if (tab === 'packages' && !pkgDiagram) {
       setLoading(true)
       setError(null)
-      getPackageDiagram(token, pid, recordId)
+      getPackageDiagram(pid, recordId)
         .then(setPkgDiagram)
         .catch(e => setError((e as Error).message))
         .finally(() => setLoading(false))
     }
-  }, [token, projectId, recordId, tab, classDiagram, depGraph, pkgDiagram])
+  }, [projectId, recordId, tab, classDiagram, depGraph, pkgDiagram])
 
   // Compute layout
   const classNodes = classDiagram ? layoutNodes(classDiagram.nodes) : []

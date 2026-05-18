@@ -3,13 +3,11 @@ import { useNavigate, useSearchParams } from 'react-router-dom'
 import { ChevronRight, FileCode2, Layers } from 'lucide-react'
 import Header from '../components/layout/Header'
 import Pill from '../components/ui/Pill'
-import { useAuth } from '../context/AuthContext'
 import { getProjects } from '../api/projects'
 import { getAnalysisHistory } from '../api/analysis'
 import type { AnalysisHistoryEntry, Project } from '../types'
 
 export default function DiagramsList() {
-  const { token } = useAuth()
   const navigate = useNavigate()
   const [searchParams] = useSearchParams()
 
@@ -23,25 +21,24 @@ export default function DiagramsList() {
   const [error, setError] = useState<string | null>(null)
 
   useEffect(() => {
-    if (!token) return
-    getProjects(token)
+    getProjects()
       .then(setProjects)
       .catch(e => setError((e as Error).message))
       .finally(() => setLoadingProjects(false))
-  }, [token])
+  }, [])
 
   useEffect(() => {
-    if (!token || !selectedProjectId) {
+    if (!selectedProjectId) {
       setHistory([])
       return
     }
     setLoadingHistory(true)
     setError(null)
-    getAnalysisHistory(token, selectedProjectId)
+    getAnalysisHistory(selectedProjectId)
       .then(setHistory)
       .catch(e => setError((e as Error).message))
       .finally(() => setLoadingHistory(false))
-  }, [token, selectedProjectId])
+  }, [selectedProjectId])
 
   const selectedProject = projects.find(p => p.id === selectedProjectId)
 

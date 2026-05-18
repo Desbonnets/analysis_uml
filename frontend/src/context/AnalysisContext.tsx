@@ -21,7 +21,7 @@ interface AnalysisState {
 
 interface AnalysisContextValue {
   state: AnalysisState
-  run: (token: string, projectId: number, projectName: string, file: File) => Promise<void>
+  run: (projectId: number, projectName: string, file: File) => Promise<void>
   dismiss: () => void
   hasUnread: boolean
   markRead: () => void
@@ -43,11 +43,11 @@ export function AnalysisProvider({ children }: { children: React.ReactNode }) {
   const [hasUnread, setHasUnread] = useState(false)
   const { showToast } = useToast()
 
-  const run = useCallback(async (token: string, projectId: number, projectName: string, file: File) => {
+  const run = useCallback(async (projectId: number, projectName: string, file: File) => {
     setState({ projectId, projectName, status: 'uploading', result: null, error: null, uploadProgress: null })
 
     try {
-      const result = await uploadAndAnalyze(token, projectId, file, {
+      const result = await uploadAndAnalyze(projectId, file, {
         onUploadProgress: (loaded, total) => {
           setState(prev => ({ ...prev, status: 'uploading', uploadProgress: { loaded, total } }))
         },

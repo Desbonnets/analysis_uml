@@ -115,11 +115,6 @@ export interface UserAdmin {
   createdAt: string
 }
 
-export interface AuthResponse {
-  token: string
-  user: AuthUser
-}
-
 export interface LoginRequest {
   email: string
   password: string

@@ -45,10 +45,9 @@ interface CreateModalProps {
   roles: RoleInfo[]
   onClose: () => void
   onCreated: (user: UserAdmin) => void
-  token: string
 }
 
-function CreateModal({ roles, onClose, onCreated, token }: CreateModalProps) {
+function CreateModal({ roles, onClose, onCreated }: CreateModalProps) {
   const [form, setForm] = useState<AdminCreateUserRequest>({
     name: '', email: '', password: '', role: 'developer', plan: 'free',
   })
@@ -73,7 +72,7 @@ function CreateModal({ roles, onClose, onCreated, token }: CreateModalProps) {
     if (!validate()) return
     setLoading(true)
     try {
-      const created = await createUser(token, form)
+      const created = await createUser(form)
       onCreated(created)
     } catch (err) {
       setApiError(err instanceof Error ? err.message : 'Erreur serveur')
@@ -154,11 +153,10 @@ function CreateModal({ roles, onClose, onCreated, token }: CreateModalProps) {
 interface EditRoleProps {
   user: UserAdmin
   roles: RoleInfo[]
-  token: string
   onUpdated: (user: UserAdmin) => void
 }
 
-function EditRoleSelect({ user, roles, token, onUpdated }: EditRoleProps) {
+function EditRoleSelect({ user, roles, onUpdated }: EditRoleProps) {
   const [editing, setEditing] = useState(false)
   const [value, setValue] = useState<string>(user.role.name)
   const [loading, setLoading] = useState(false)
@@ -170,7 +168,7 @@ function EditRoleSelect({ user, roles, token, onUpdated }: EditRoleProps) {
     setError('')
     setLoading(true)
     try {
-      const updated = await updateUserRole(token, user.id, newRole)
+      const updated = await updateUserRole(user.id, newRole)
       onUpdated(updated)
       setEditing(false)
     } catch (err) {
@@ -213,7 +211,7 @@ function EditRoleSelect({ user, roles, token, onUpdated }: EditRoleProps) {
 }
 
 export default function AdminUsers() {
-  const { token, user: currentUser } = useAuth()
+  const { user: currentUser } = useAuth()
   const [users, setUsers] = useState<UserAdmin[]>([])
   const [roles, setRoles] = useState<RoleInfo[]>([])
   const [loading, setLoading] = useState(true)
@@ -224,9 +222,8 @@ export default function AdminUsers() {
   const [deleteConfirm, setDeleteConfirm] = useState<number | null>(null)
 
   const load = useCallback(async () => {
-    if (!token) return
     try {
-      const [u, r] = await Promise.all([getUsers(token), getRoles(token)])
+      const [u, r] = await Promise.all([getUsers(), getRoles()])
       setUsers(u)
       setRoles(r)
     } catch (err) {
@@ -234,13 +231,12 @@ export default function AdminUsers() {
     } finally {
       setLoading(false)
     }
-  }, [token])
+  }, [])
 
   useEffect(() => { void load() }, [load])
 
   async function handleDelete(id: number) {
-    if (!token) return
-    await deleteUser(token, id)
+    await deleteUser(id)
     setUsers(prev => prev.filter(u => u.id !== id))
     setDeleteConfirm(null)
   }
@@ -312,7 +308,7 @@ export default function AdminUsers() {
                       </div>
                     </td>
                     <td>
-                      <EditRoleSelect user={u} roles={roles} token={token!} onUpdated={handleUpdated} />
+                      <EditRoleSelect user={u} roles={roles} onUpdated={handleUpdated} />
                     </td>
                     <td><Pill tone={PLAN_TONE[u.plan]} square>{u.plan}</Pill></td>
                     <td className="muted" style={{ fontFamily: 'var(--font-mono)', fontSize: 11 }}>
@@ -359,10 +355,9 @@ export default function AdminUsers() {
         </div>
       )}
 
-      {showCreate && token && (
+      {showCreate && (
         <CreateModal
           roles={roles}
-          token={token}
           onClose={() => setShowCreate(false)}
           onCreated={user => {
             setUsers(prev => [...prev, user])

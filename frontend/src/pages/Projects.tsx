@@ -75,12 +75,11 @@ const inputStyle: React.CSSProperties = {
 }
 
 interface CreateModalProps {
-  token: string
   onClose: () => void
   onCreated: (p: Project) => void
 }
 
-function CreateModal({ token, onClose, onCreated }: CreateModalProps) {
+function CreateModal({ onClose, onCreated }: CreateModalProps) {
   const [form, setForm] = useState<CreateProjectRequest>({ name: '', description: '', language: 'Spring Boot' })
   const [errors, setErrors] = useState<Partial<Record<keyof CreateProjectRequest, string>>>({})
   const [apiError, setApiError] = useState('')
@@ -100,7 +99,7 @@ function CreateModal({ token, onClose, onCreated }: CreateModalProps) {
     if (!validate()) return
     setLoading(true)
     try {
-      const created = await createProject(token, form)
+      const created = await createProject(form)
       onCreated(created)
     } catch (err) {
       setApiError(err instanceof Error ? err.message : 'Erreur serveur')
@@ -173,7 +172,7 @@ function CreateModal({ token, onClose, onCreated }: CreateModalProps) {
 }
 
 export default function Projects() {
-  const { token, user } = useAuth()
+  const { user } = useAuth()
   const [projects, setProjects] = useState<Project[]>([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState('')
@@ -183,22 +182,20 @@ export default function Projects() {
   const [deleteConfirm, setDeleteConfirm] = useState<number | null>(null)
 
   const load = useCallback(async () => {
-    if (!token) return
     try {
-      const data = await getProjects(token)
+      const data = await getProjects()
       setProjects(data)
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Erreur de chargement')
     } finally {
       setLoading(false)
     }
-  }, [token])
+  }, [])
 
   useEffect(() => { void load() }, [load])
 
   async function handleDelete(id: number) {
-    if (!token) return
-    await deleteProject(token, id)
+    await deleteProject(id)
     setProjects(prev => prev.filter(p => p.id !== id))
     setDeleteConfirm(null)
   }
@@ -344,9 +341,8 @@ export default function Projects() {
         )}
       </div>
 
-      {showCreate && token && (
+      {showCreate && (
         <CreateModal
-          token={token}
           onClose={() => setShowCreate(false)}
           onCreated={p => { setProjects(prev => [...prev, p]); setShowCreate(false) }}
         />

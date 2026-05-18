@@ -11,7 +11,7 @@ const STATUS_MESSAGES: Record<number, string> = {
   503: 'Service indisponible',
 }
 
-// These status codes indicate a transient gateway/service issue worth retrying.
+// 502/503/504 indicate a transient gateway/service issue (e.g. Docker startup).
 const RETRYABLE = new Set([502, 503, 504])
 
 function delay(ms: number) {
@@ -31,24 +31,23 @@ async function extractError(res: Response): Promise<string> {
 export async function apiRequest<T>(
   path: string,
   options: RequestInit = {},
-  token?: string,
   _retries = 2,
 ): Promise<T> {
   let res: Response
   try {
     res = await fetch(`${API_BASE}${path}`, {
       ...options,
+      credentials: 'include',
       headers: {
         'Content-Type': 'application/json',
         'Cache-Control': 'no-cache',
-        ...(token ? { Authorization: `Bearer ${token}` } : {}),
         ...options.headers,
       },
     })
   } catch {
     if (_retries > 0) {
       await delay(1000)
-      return apiRequest<T>(path, options, token, _retries - 1)
+      return apiRequest<T>(path, options, _retries - 1)
     }
     throw new Error('Impossible de joindre le serveur. Vérifiez votre connexion.')
   }
@@ -57,7 +56,7 @@ export async function apiRequest<T>(
 
   if (RETRYABLE.has(res.status) && _retries > 0) {
     await delay(1000)
-    return apiRequest<T>(path, options, token, _retries - 1)
+    return apiRequest<T>(path, options, _retries - 1)
   }
 
   if (res.status === 401) {

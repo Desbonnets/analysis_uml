@@ -33,8 +33,8 @@ export default function Register() {
     setError(null)
     setLoading(true)
     try {
-      const res = await register(form)
-      saveAuth(res.token, res.user)
+      const user = await register(form)
+      saveAuth(user)
       navigate('/dashboard')
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Erreur lors de la création du compte')

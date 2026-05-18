@@ -36,7 +36,7 @@ const statusLabel: Record<string, string> = {
 
 export default function ProjectDetail() {
   const { id } = useParams<{ id: string }>()
-  const { token, user } = useAuth()
+  const { user } = useAuth()
   const { state: analysisState } = useAnalysis()
   const [project, setProject] = useState<Project | null>(null)
   const [loading, setLoading] = useState(true)
@@ -46,24 +46,24 @@ export default function ProjectDetail() {
   const [showResultModal, setShowResultModal] = useState(false)
 
   useEffect(() => {
-    if (!token || !id) return
-    getProjectById(token, parseInt(id, 10))
+    if (!id) return
+    getProjectById(parseInt(id, 10))
       .then(setProject)
       .catch(() => setProject(null))
       .finally(() => setLoading(false))
-  }, [token, id])
+  }, [id])
 
   const handleGenerateToken = useCallback(async () => {
-    if (!token || !id) return
+    if (!id) return
     setTokenLoading(true)
     try {
-      const res = await generateProjectToken(token, parseInt(id, 10))
+      const res = await generateProjectToken(parseInt(id, 10))
       setApiToken(res.token)
       setProject(p => p ? { ...p, hasApiToken: true } : p)
     } finally {
       setTokenLoading(false)
     }
-  }, [token, id])
+  }, [id])
 
   const copyToClipboard = useCallback((text: string, key: string) => {
     void navigator.clipboard.writeText(text).then(() => {
