@@ -23,6 +23,11 @@ public class JwtUtil {
         return parseClaims(token).getSubject();
     }
 
+    public String extractRole(String token) {
+        Object role = parseClaims(token).get("role");
+        return role != null ? role.toString() : "developer";
+    }
+
     public boolean isTokenExpired(String token) {
         return parseClaims(token).getExpiration().before(new Date());
     }

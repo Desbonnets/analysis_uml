@@ -11,6 +11,13 @@ const STATUS_MESSAGES: Record<number, string> = {
   503: 'Service indisponible',
 }
 
+// These status codes indicate a transient gateway/service issue worth retrying.
+const RETRYABLE = new Set([502, 503, 504])
+
+function delay(ms: number) {
+  return new Promise<void>(resolve => setTimeout(resolve, ms))
+}
+
 async function extractError(res: Response): Promise<string> {
   try {
     const data = await res.json()
@@ -25,6 +32,7 @@ export async function apiRequest<T>(
   path: string,
   options: RequestInit = {},
   token?: string,
+  _retries = 2,
 ): Promise<T> {
   let res: Response
   try {
@@ -32,15 +40,29 @@ export async function apiRequest<T>(
       ...options,
       headers: {
         'Content-Type': 'application/json',
+        'Cache-Control': 'no-cache',
         ...(token ? { Authorization: `Bearer ${token}` } : {}),
         ...options.headers,
       },
     })
   } catch {
+    if (_retries > 0) {
+      await delay(1000)
+      return apiRequest<T>(path, options, token, _retries - 1)
+    }
     throw new Error('Impossible de joindre le serveur. Vérifiez votre connexion.')
   }
 
   if (res.status === 204) return undefined as T
+
+  if (RETRYABLE.has(res.status) && _retries > 0) {
+    await delay(1000)
+    return apiRequest<T>(path, options, token, _retries - 1)
+  }
+
+  if (res.status === 401) {
+    window.dispatchEvent(new CustomEvent('auth:unauthorized'))
+  }
 
   if (!res.ok) throw new Error(await extractError(res))
 

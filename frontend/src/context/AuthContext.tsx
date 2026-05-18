@@ -1,4 +1,4 @@
-import { createContext, useContext, useState, useCallback, type ReactNode } from 'react'
+import { createContext, useContext, useState, useCallback, useEffect, type ReactNode } from 'react'
 import type { AuthUser } from '../types'
 
 interface AuthState {
@@ -43,6 +43,21 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     localStorage.removeItem(USER_KEY)
     setState({ token: null, user: null })
   }, [])
+
+  useEffect(() => {
+    const handleUnauthorized = () => clearAuth()
+    window.addEventListener('auth:unauthorized', handleUnauthorized)
+    return () => window.removeEventListener('auth:unauthorized', handleUnauthorized)
+  }, [clearAuth])
+
+  // Sync logout across tabs: if another tab clears the token, clear state here too.
+  useEffect(() => {
+    const handleStorage = (e: StorageEvent) => {
+      if (e.key === TOKEN_KEY && !e.newValue) clearAuth()
+    }
+    window.addEventListener('storage', handleStorage)
+    return () => window.removeEventListener('storage', handleStorage)
+  }, [clearAuth])
 
   return (
     <AuthContext.Provider value={{ ...state, saveAuth, clearAuth }}>

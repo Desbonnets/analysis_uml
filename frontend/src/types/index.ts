@@ -1,3 +1,9 @@
+export interface ProjectMember {
+  userEmail: string
+  userName: string
+  role: 'owner' | 'member'
+}
+
 export interface Project {
   id: number
   name: string
@@ -13,6 +19,7 @@ export interface Project {
   ownerName: string
   repositoryUrl?: string
   hasApiToken?: boolean
+  members?: ProjectMember[]
 }
 
 export interface CreateProjectRequest {

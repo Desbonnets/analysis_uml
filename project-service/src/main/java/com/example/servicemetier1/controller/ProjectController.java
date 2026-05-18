@@ -1,8 +1,10 @@
 package com.example.servicemetier1.controller;
 
+import com.example.servicemetier1.dto.AddMemberRequest;
 import com.example.servicemetier1.dto.CreateProjectRequest;
 import com.example.servicemetier1.dto.GenerateTokenResponse;
 import com.example.servicemetier1.dto.ProjectDto;
+import com.example.servicemetier1.dto.ProjectMemberDto;
 import com.example.servicemetier1.dto.SubmitAnalysisRequest;
 import com.example.servicemetier1.dto.UpdateProjectRequest;
 import com.example.servicemetier1.service.ProjectService;
@@ -10,8 +12,7 @@ import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
-import org.springframework.security.core.annotation.AuthenticationPrincipal;
-import org.springframework.security.core.userdetails.UserDetails;
+import org.springframework.security.core.Authentication;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
@@ -24,44 +25,41 @@ public class ProjectController {
     private final ProjectService projectService;
 
     @GetMapping
-    public List<ProjectDto> getAll() {
-        return projectService.findAll();
+    public List<ProjectDto> getAll(Authentication auth) {
+        return projectService.findAll(auth.getName(), isAdmin(auth));
     }
 
     @GetMapping("/{id}")
-    public ProjectDto getById(@PathVariable Long id) {
-        return projectService.findById(id);
+    public ProjectDto getById(@PathVariable Long id, Authentication auth) {
+        return projectService.findById(id, auth.getName(), isAdmin(auth));
     }
 
     @PostMapping
     public ResponseEntity<ProjectDto> create(
             @Valid @RequestBody CreateProjectRequest req,
-            @AuthenticationPrincipal UserDetails userDetails) {
-        ProjectDto created = projectService.create(req, userDetails.getUsername(), null);
-        return ResponseEntity.status(HttpStatus.CREATED).body(created);
+            Authentication auth) {
+        return ResponseEntity.status(HttpStatus.CREATED)
+                .body(projectService.create(req, auth.getName(), null));
     }
 
     @PutMapping("/{id}")
     public ProjectDto update(
             @PathVariable Long id,
             @RequestBody UpdateProjectRequest req,
-            @AuthenticationPrincipal UserDetails userDetails) {
-        return projectService.update(id, req, userDetails.getUsername());
+            Authentication auth) {
+        return projectService.update(id, req, auth.getName());
     }
 
     @DeleteMapping("/{id}")
-    public ResponseEntity<Void> delete(
-            @PathVariable Long id,
-            @AuthenticationPrincipal UserDetails userDetails) {
-        projectService.delete(id, userDetails.getUsername());
+    public ResponseEntity<Void> delete(@PathVariable Long id, Authentication auth) {
+        projectService.delete(id, auth.getName());
         return ResponseEntity.noContent().build();
     }
 
     @PostMapping("/{id}/token")
     public ResponseEntity<GenerateTokenResponse> generateToken(
-            @PathVariable Long id,
-            @AuthenticationPrincipal UserDetails userDetails) {
-        return ResponseEntity.ok(projectService.generateToken(id, userDetails.getUsername()));
+            @PathVariable Long id, Authentication auth) {
+        return ResponseEntity.ok(projectService.generateToken(id, auth.getName()));
     }
 
     @PostMapping("/{id}/report")
@@ -71,5 +69,35 @@ public class ProjectController {
             @RequestBody SubmitAnalysisRequest req) {
         projectService.submitAnalysis(id, token, req);
         return ResponseEntity.ok().build();
+    }
+
+    // ── Member endpoints ───────────────────────────────────────────────────────
+
+    @GetMapping("/{id}/members")
+    public List<ProjectMemberDto> getMembers(@PathVariable Long id, Authentication auth) {
+        return projectService.getMembers(id, auth.getName(), isAdmin(auth));
+    }
+
+    @PostMapping("/{id}/members")
+    public ResponseEntity<ProjectMemberDto> addMember(
+            @PathVariable Long id,
+            @Valid @RequestBody AddMemberRequest req,
+            Authentication auth) {
+        return ResponseEntity.status(HttpStatus.CREATED)
+                .body(projectService.addMember(id, req, auth.getName()));
+    }
+
+    @DeleteMapping("/{id}/members/{memberEmail}")
+    public ResponseEntity<Void> removeMember(
+            @PathVariable Long id,
+            @PathVariable String memberEmail,
+            Authentication auth) {
+        projectService.removeMember(id, memberEmail, auth.getName());
+        return ResponseEntity.noContent().build();
+    }
+
+    private boolean isAdmin(Authentication auth) {
+        return auth.getAuthorities().stream()
+                .anyMatch(a -> a.getAuthority().equals("ROLE_ADMIN"));
     }
 }
