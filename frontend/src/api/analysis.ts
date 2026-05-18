@@ -1,8 +1,8 @@
 import { API_BASE, apiRequest } from './_request'
 import type { AnalysisHistoryEntry, BackendAnalysisResponse } from '../types'
 
-export function getAnalysisHistory(token: string, projectId: number): Promise<AnalysisHistoryEntry[]> {
-  return apiRequest<AnalysisHistoryEntry[]>(`/analysis/${projectId}/history`, {}, token)
+export function getAnalysisHistory(projectId: number): Promise<AnalysisHistoryEntry[]> {
+  return apiRequest<AnalysisHistoryEntry[]>(`/analysis/${projectId}/history`)
 }
 
 interface UploadOpts {
@@ -11,7 +11,6 @@ interface UploadOpts {
 }
 
 export function uploadAndAnalyze(
-  token: string,
   projectId: number,
   file: File,
   opts: UploadOpts = {},
@@ -21,15 +20,20 @@ export function uploadAndAnalyze(
     formData.append('file', file)
 
     const xhr = new XMLHttpRequest()
+    xhr.withCredentials = true
 
     xhr.upload.addEventListener('progress', (e) => {
       if (e.lengthComputable) opts.onUploadProgress?.(e.loaded, e.total)
     })
 
-    // fired when all bytes are sent — server is now processing
     xhr.upload.addEventListener('load', () => opts.onUploadDone?.())
 
     xhr.addEventListener('load', () => {
+      if (xhr.status === 401) {
+        window.dispatchEvent(new CustomEvent('auth:unauthorized'))
+        reject(new Error('Session expirée, veuillez vous reconnecter'))
+        return
+      }
       if (xhr.status >= 200 && xhr.status < 300) {
         try {
           resolve(JSON.parse(xhr.responseText) as BackendAnalysisResponse)
@@ -53,10 +57,9 @@ export function uploadAndAnalyze(
     xhr.addEventListener('timeout', () =>
       reject(new Error("Délai d'attente dépassé (5 min)")))
 
-    xhr.timeout = 300_000 // 5 minutes — large ZIPs can take time
+    xhr.timeout = 300_000
 
     xhr.open('POST', `${API_BASE}/analysis/${projectId}`)
-    xhr.setRequestHeader('Authorization', `Bearer ${token}`)
     xhr.send(formData)
   })
 }

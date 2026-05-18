@@ -18,8 +18,8 @@ export default function Login() {
     setError(null)
     setLoading(true)
     try {
-      const res = await login({ email, password })
-      saveAuth(res.token, res.user)
+      const user = await login({ email, password })
+      saveAuth(user)
       navigate('/dashboard')
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Erreur de connexion')

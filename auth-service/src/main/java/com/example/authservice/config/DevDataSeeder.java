@@ -46,9 +46,14 @@ public class DevDataSeeder implements ApplicationRunner {
     }
 
     private void seedUsers() {
-        seedUser("Admin Dev",  "admin@dev.local", "Admin1234!@#", "admin",     "pro");
-        seedUser("Alice Dev",  "alice@dev.local", "Alice1234!@#", "architect", "pro");
-        seedUser("Bob Dev",    "bob@dev.local",   "Bob@Dev1234!", "developer", "free");
+        // Groupe 1 — projet Alpha
+        seedUser("Admin Dev",    "admin@dev.local",  "Admin1234!@#",  "admin",     "pro");
+        seedUser("Alice Dev",    "alice@dev.local",  "Alice1234!@#",  "architect", "pro");
+        seedUser("Bob Dev",      "bob@dev.local",    "Bob@Dev1234!",  "developer", "free");
+        // Groupe 2 — projet Beta
+        seedUser("Carol Dev",    "carol@dev.local",  "Carol1234!@#",  "admin",     "pro");
+        seedUser("Dave Dev",     "dave@dev.local",   "Dave1234!@#",   "architect", "pro");
+        seedUser("Eve Dev",      "eve@dev.local",    "Eve@Dev1234!",  "developer", "free");
     }
 
     private void seedUser(String name, String email, String rawPassword, String roleName, String plan) {

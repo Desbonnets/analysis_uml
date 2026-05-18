@@ -1,11 +1,11 @@
 import { useState, useEffect, useCallback } from 'react'
 import { Link } from 'react-router-dom'
-import { FolderOpen, MoreHorizontal, Plus, SlidersHorizontal, Search, X, Check } from 'lucide-react'
+import { FolderOpen, MoreHorizontal, Plus, SlidersHorizontal, Search, X, Check, Users } from 'lucide-react'
 import Header from '../components/layout/Header'
 import Pill from '../components/ui/Pill'
 import { useAuth } from '../context/AuthContext'
 import { getProjects, createProject, deleteProject } from '../api/projects'
-import type { Project, CreateProjectRequest } from '../types'
+import type { Project, ProjectMember, CreateProjectRequest } from '../types'
 
 const langShort: Record<string, string> = {
   'Spring Boot': 'java', Symfony: 'php', Laravel: 'php', 'Node.js': 'ts',
@@ -23,6 +23,51 @@ const scoreColor = (s: number) => s >= 80 ? 'var(--ok)' : s >= 60 ? 'var(--warn)
 
 const LANGUAGES = ['Spring Boot', 'Symfony', 'Laravel', 'Node.js']
 
+function initials(name: string) {
+  return name.split(' ').map(p => p[0]).join('').toUpperCase().slice(0, 2)
+}
+
+function MemberAvatars({ members }: { members: ProjectMember[] }) {
+  const shown = members.slice(0, 4)
+  const rest = members.length - shown.length
+  return (
+    <div style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
+      <Users size={11} style={{ color: 'var(--fg-2)', flexShrink: 0 }} />
+      <div style={{ display: 'flex', marginLeft: 2 }}>
+        {shown.map(m => (
+          <div
+            key={m.userEmail}
+            title={`${m.userName} (${m.role})`}
+            style={{
+              width: 20, height: 20, borderRadius: '50%',
+              background: m.role === 'owner' ? 'var(--accent)' : 'var(--bg-3)',
+              color: m.role === 'owner' ? '#fff' : 'var(--fg-1)',
+              fontSize: 8, fontWeight: 700, fontFamily: 'var(--font-sans)',
+              display: 'flex', alignItems: 'center', justifyContent: 'center',
+              marginLeft: -4, border: '1px solid var(--bg-1)', flexShrink: 0,
+            }}
+          >
+            {initials(m.userName)}
+          </div>
+        ))}
+        {rest > 0 && (
+          <div style={{
+            width: 20, height: 20, borderRadius: '50%', background: 'var(--bg-3)',
+            color: 'var(--fg-2)', fontSize: 8, fontFamily: 'var(--font-sans)',
+            display: 'flex', alignItems: 'center', justifyContent: 'center',
+            marginLeft: -4, border: '1px solid var(--bg-1)', flexShrink: 0,
+          }}>
+            +{rest}
+          </div>
+        )}
+      </div>
+      <span style={{ fontSize: 11, color: 'var(--fg-2)', marginLeft: 4 }}>
+        {members.length} membre{members.length !== 1 ? 's' : ''}
+      </span>
+    </div>
+  )
+}
+
 const inputStyle: React.CSSProperties = {
   width: '100%', background: 'var(--bg-0)', border: '1px solid var(--line-2)',
   borderRadius: 6, padding: '8px 12px', fontSize: 13, color: 'var(--fg-0)',
@@ -30,12 +75,11 @@ const inputStyle: React.CSSProperties = {
 }
 
 interface CreateModalProps {
-  token: string
   onClose: () => void
   onCreated: (p: Project) => void
 }
 
-function CreateModal({ token, onClose, onCreated }: CreateModalProps) {
+function CreateModal({ onClose, onCreated }: CreateModalProps) {
   const [form, setForm] = useState<CreateProjectRequest>({ name: '', description: '', language: 'Spring Boot' })
   const [errors, setErrors] = useState<Partial<Record<keyof CreateProjectRequest, string>>>({})
   const [apiError, setApiError] = useState('')
@@ -55,7 +99,7 @@ function CreateModal({ token, onClose, onCreated }: CreateModalProps) {
     if (!validate()) return
     setLoading(true)
     try {
-      const created = await createProject(token, form)
+      const created = await createProject(form)
       onCreated(created)
     } catch (err) {
       setApiError(err instanceof Error ? err.message : 'Erreur serveur')
@@ -128,7 +172,7 @@ function CreateModal({ token, onClose, onCreated }: CreateModalProps) {
 }
 
 export default function Projects() {
-  const { token, user } = useAuth()
+  const { user } = useAuth()
   const [projects, setProjects] = useState<Project[]>([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState('')
@@ -138,22 +182,20 @@ export default function Projects() {
   const [deleteConfirm, setDeleteConfirm] = useState<number | null>(null)
 
   const load = useCallback(async () => {
-    if (!token) return
     try {
-      const data = await getProjects(token)
+      const data = await getProjects()
       setProjects(data)
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Erreur de chargement')
     } finally {
       setLoading(false)
     }
-  }, [token])
+  }, [])
 
   useEffect(() => { void load() }, [load])
 
   async function handleDelete(id: number) {
-    if (!token) return
-    await deleteProject(token, id)
+    await deleteProject(id)
     setProjects(prev => prev.filter(p => p.id !== id))
     setDeleteConfirm(null)
   }
@@ -255,7 +297,9 @@ export default function Projects() {
                     </div>
 
                     <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginTop: 14, paddingTop: 14, borderTop: '1px solid var(--line-1)' }}>
-                      <span style={{ fontSize: 11, color: 'var(--fg-2)' }}>{project.ownerName}</span>
+                      {project.members && project.members.length > 0
+                        ? <MemberAvatars members={project.members} />
+                        : <span style={{ fontSize: 11, color: 'var(--fg-2)' }}>{project.ownerName}</span>}
                       {project.score > 0 ? (
                         <span className="num" style={{ fontSize: 13, fontWeight: 600, color: scoreColor(project.score) }}>
                           {project.score}<span style={{ color: 'var(--fg-2)', fontWeight: 400 }}>/100</span>
@@ -297,9 +341,8 @@ export default function Projects() {
         )}
       </div>
 
-      {showCreate && token && (
+      {showCreate && (
         <CreateModal
-          token={token}
           onClose={() => setShowCreate(false)}
           onCreated={p => { setProjects(prev => [...prev, p]); setShowCreate(false) }}
         />

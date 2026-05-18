@@ -1,26 +1,26 @@
 import type { AdminCreateUserRequest, AdminUpdateUserRequest, UserAdmin } from '../types'
 import { apiRequest } from './_request'
 
-export function getUsers(token: string): Promise<UserAdmin[]> {
-  return apiRequest<UserAdmin[]>('/users', {}, token)
+export function getUsers(): Promise<UserAdmin[]> {
+  return apiRequest<UserAdmin[]>('/users')
 }
 
-export function getUserById(token: string, id: number): Promise<UserAdmin> {
-  return apiRequest<UserAdmin>(`/users/${id}`, {}, token)
+export function getUserById(id: number): Promise<UserAdmin> {
+  return apiRequest<UserAdmin>(`/users/${id}`)
 }
 
-export function createUser(token: string, payload: AdminCreateUserRequest): Promise<UserAdmin> {
-  return apiRequest<UserAdmin>('/users', { method: 'POST', body: JSON.stringify(payload) }, token)
+export function createUser(payload: AdminCreateUserRequest): Promise<UserAdmin> {
+  return apiRequest<UserAdmin>('/users', { method: 'POST', body: JSON.stringify(payload) })
 }
 
-export function updateUser(token: string, id: number, payload: AdminUpdateUserRequest): Promise<UserAdmin> {
-  return apiRequest<UserAdmin>(`/users/${id}`, { method: 'PUT', body: JSON.stringify(payload) }, token)
+export function updateUser(id: number, payload: AdminUpdateUserRequest): Promise<UserAdmin> {
+  return apiRequest<UserAdmin>(`/users/${id}`, { method: 'PUT', body: JSON.stringify(payload) })
 }
 
-export function deleteUser(token: string, id: number): Promise<void> {
-  return apiRequest<void>(`/users/${id}`, { method: 'DELETE' }, token)
+export function deleteUser(id: number): Promise<void> {
+  return apiRequest<void>(`/users/${id}`, { method: 'DELETE' })
 }
 
-export function updateUserRole(token: string, id: number, role: string): Promise<UserAdmin> {
-  return apiRequest<UserAdmin>(`/users/${id}/role`, { method: 'PUT', body: JSON.stringify({ role }) }, token)
+export function updateUserRole(id: number, role: string): Promise<UserAdmin> {
+  return apiRequest<UserAdmin>(`/users/${id}/role`, { method: 'PUT', body: JSON.stringify({ role }) })
 }

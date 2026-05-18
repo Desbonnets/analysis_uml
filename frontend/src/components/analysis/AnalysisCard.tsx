@@ -1,7 +1,6 @@
 import { useRef, useState } from 'react'
 import { Upload, Play, CheckCircle, AlertCircle, FileCode, X } from 'lucide-react'
 import { useAnalysis } from '../../context/AnalysisContext'
-import { useAuth } from '../../context/AuthContext'
 
 interface Props {
   projectId: number
@@ -39,7 +38,6 @@ function ProgressBar({ pct, indeterminate }: { pct?: number; indeterminate?: boo
 
 export default function AnalysisCard({ projectId, projectName, onViewResult }: Props) {
   const { state, run, dismiss } = useAnalysis()
-  const { token } = useAuth()
   const fileRef = useRef<HTMLInputElement>(null)
   const [selectedFile, setSelectedFile] = useState<File | null>(null)
 
@@ -51,8 +49,8 @@ export default function AnalysisCard({ projectId, projectName, onViewResult }: P
   const isOtherBusy  = (state.status === 'uploading' || state.status === 'analyzing') && state.projectId !== projectId
 
   const handleRun = () => {
-    if (!token || !selectedFile) return
-    void run(token, projectId, projectName, selectedFile)
+    if (!selectedFile) return
+    void run(projectId, projectName, selectedFile)
   }
 
   // ── Phase 1 : upload ──────────────────────────────────────────────────────

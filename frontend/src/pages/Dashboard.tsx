@@ -24,18 +24,17 @@ const activity = [
 ]
 
 export default function Dashboard() {
-  const { token } = useAuth()
+  useAuth()
   const [projects, setProjects] = useState<Project[]>([])
 
   const load = useCallback(async () => {
-    if (!token) return
     try {
-      const data = await getProjects(token)
+      const data = await getProjects()
       setProjects(data)
     } catch {
       // keep empty state — metrics show zeros
     }
-  }, [token])
+  }, [])
 
   useEffect(() => { void load() }, [load])
 

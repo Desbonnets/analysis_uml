@@ -185,15 +185,29 @@ cd <service-directory>
 
 ### Dev (local, profile `!docker`)
 
-| Email | Password | Role | Plan |
-|---|---|---|---|
-| `admin@dev.local` | `Admin1234!@#` | admin | pro |
-| `alice@dev.local` | `Alice1234!@#` | architect | pro |
-| `bob@dev.local` | `Bob@Dev1234!` | developer | free |
+**Users — deux groupes de projet :**
+
+| Email | Password | Role | Plan | Groupe |
+|---|---|---|---|---|
+| `admin@dev.local` | `Admin1234!@#` | admin | pro | Projet Alpha |
+| `alice@dev.local` | `Alice1234!@#` | architect | pro | Projet Alpha |
+| `bob@dev.local` | `Bob@Dev1234!` | developer | free | Projet Alpha |
+| `carol@dev.local` | `Carol1234!@#` | admin | pro | Projet Beta |
+| `dave@dev.local` | `Dave1234!@#` | architect | pro | Projet Beta |
+| `eve@dev.local` | `Eve@Dev1234!` | developer | free | Projet Beta |
+
+**Projets :**
+
+| Nom | Propriétaire | Membres |
+|---|---|---|
+| Projet Alpha | `admin@dev.local` | admin (owner), alice (member), bob (member) |
+| Projet Beta | `carol@dev.local` | carol (owner), dave (member), eve (member) |
+
+Les membres d'un projet voient uniquement leurs propres projets. Les admins voient tous les projets.
 
 ### Docker / prod (profile `docker`)
 
-One admin seeded via env vars `SEED_ADMIN_EMAIL`, `SEED_ADMIN_PASSWORD`, `SEED_ADMIN_NAME`.
+Un admin seedé via les variables d'env `SEED_ADMIN_EMAIL`, `SEED_ADMIN_PASSWORD`, `SEED_ADMIN_NAME`.
 
 ---
 
@@ -234,6 +248,47 @@ JPA DDL mode is `update` in all services — schema managed automatically in dev
 
 ---
 
+## Membership et visibilité des projets
+
+La visibilité des projets est contrôlée par la table `project_members` dans `projet_db`.
+
+| Rôle système | Visibilité projets |
+|---|---|
+| `admin` | Tous les projets |
+| `architect` / `developer` | Uniquement les projets dont ils sont membres |
+
+### Endpoints membres
+
+```
+GET    /projects/{id}/members              — liste les membres (accessible aux membres et admins)
+POST   /projects/{id}/members              — ajoute un membre (owner uniquement)
+DELETE /projects/{id}/members/{email}      — retire un membre (owner uniquement)
+```
+
+Payload `POST /projects/{id}/members` :
+```json
+{ "userEmail": "user@example.com", "userName": "Prénom Nom" }
+```
+
+### Rôles de membership
+
+| Rôle | Description |
+|---|---|
+| `owner` | Créateur du projet — peut modifier, supprimer, gérer les membres |
+| `member` | Membre invité — peut consulter et analyser |
+
+---
+
+## Sécurité frontend
+
+- **JWT stocké en `localStorage`** — vulnérable XSS ; migration vers cookie `httpOnly` prévue en production.
+- **Auto-logout sur 401** — toute réponse 401 du backend dispatch un event `auth:unauthorized` sur `window`, ce qui déclenche `clearAuth()` et redirige vers `/login`.
+- **Sync inter-onglets** — déconnexion dans un onglet propagée aux autres via l'event `storage` sur `TOKEN_KEY`.
+- **Retry automatique** — les erreurs 502/503/504 (services Docker pas encore démarrés) sont retentées 2 fois avec 1 s de délai avant d'afficher une erreur.
+- **Cache-Control: no-cache** — ajouté sur toutes les requêtes API pour éviter les réponses en cache périmées après redémarrage Docker.
+
+---
+
 ## Known issues / gotchas
 
 - **`@EnableEurekaServer` is mandatory** on `EurekaServerApplication`. Removing it causes a NullPointerException at startup.
@@ -242,6 +297,7 @@ JPA DDL mode is `update` in all services — schema managed automatically in dev
 - **MinIO must start before analysis-service and diagram-service** — both fail on startup if MinIO is unreachable.
 - **diagram-service calls analysis-service** using `@LoadBalanced RestTemplate` — Eureka must be running first.
 - **JWT secret**: dev-only placeholder in `application.properties`. Replace before any production deployment.
+- **project_members table**: créée automatiquement par JPA (`ddl-auto=update`). Sur une base existante, la table sera ajoutée sans perte de données. Les projets existants sans membres ne seront pas visibles pour les non-admins tant qu'un owner n'est pas assigné manuellement.
 
 ---
 

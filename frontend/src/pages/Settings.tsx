@@ -73,7 +73,7 @@ function initials(name: string): string {
 }
 
 export default function Settings() {
-  const { token, user: authUser, saveAuth } = useAuth()
+  const { user: authUser, saveAuth } = useAuth()
   const { showToast } = useToast()
   const [tab, setTab] = useState('general')
 
@@ -87,22 +87,21 @@ export default function Settings() {
   const [teamLoading, setTeamLoading] = useState(false)
 
   useEffect(() => {
-    if (!token) return
-    getMe(token)
+    getMe()
       .then(profile => setForm(f => ({ ...f, name: profile.name, email: profile.email })))
       .catch(() => {
         if (authUser) setForm(f => ({ ...f, name: authUser.name, email: authUser.email }))
       })
       .finally(() => setProfileLoading(false))
-  }, [token, authUser])
+  }, [authUser])
 
   useEffect(() => {
-    if (tab !== 'team' || !token || authUser?.role !== 'admin') return
+    if (tab !== 'team' || authUser?.role !== 'admin') return
     setTeamLoading(true)
-    getUsers(token)
+    getUsers()
       .then(setTeamUsers)
       .finally(() => setTeamLoading(false))
-  }, [tab, token, authUser?.role])
+  }, [tab, authUser?.role])
 
   function validatePassword(): boolean {
     const next: typeof fieldErrors = {}
@@ -118,20 +117,19 @@ export default function Settings() {
 
   async function handleSave(e: React.FormEvent) {
     e.preventDefault()
-    if (!token) return
     if (!validatePassword()) return
     setSaving(true)
     setSaveError('')
     try {
-      const payload: Parameters<typeof updateMe>[1] = {}
+      const payload: Parameters<typeof updateMe>[0] = {}
       if (form.name) payload.name = form.name
       if (form.email) payload.email = form.email
       if (form.newPassword) {
         payload.currentPassword = form.currentPassword
         payload.newPassword = form.newPassword
       }
-      const updated = await updateMe(token, payload)
-      if (authUser) saveAuth(token, { ...authUser, name: updated.name, email: updated.email })
+      const updated = await updateMe(payload)
+      if (authUser) saveAuth({ ...authUser, name: updated.name, email: updated.email })
       setForm(f => ({ ...f, currentPassword: '', newPassword: '' }))
       showToast('Profil enregistré avec succès')
     } catch (err) {

@@ -11,6 +11,13 @@ const STATUS_MESSAGES: Record<number, string> = {
   503: 'Service indisponible',
 }
 
+// 502/503/504 indicate a transient gateway/service issue (e.g. Docker startup).
+const RETRYABLE = new Set([502, 503, 504])
+
+function delay(ms: number) {
+  return new Promise<void>(resolve => setTimeout(resolve, ms))
+}
+
 async function extractError(res: Response): Promise<string> {
   try {
     const data = await res.json()
@@ -24,23 +31,37 @@ async function extractError(res: Response): Promise<string> {
 export async function apiRequest<T>(
   path: string,
   options: RequestInit = {},
-  token?: string,
+  _retries = 2,
 ): Promise<T> {
   let res: Response
   try {
     res = await fetch(`${API_BASE}${path}`, {
       ...options,
+      credentials: 'include',
       headers: {
         'Content-Type': 'application/json',
-        ...(token ? { Authorization: `Bearer ${token}` } : {}),
+        'Cache-Control': 'no-cache',
         ...options.headers,
       },
     })
   } catch {
+    if (_retries > 0) {
+      await delay(1000)
+      return apiRequest<T>(path, options, _retries - 1)
+    }
     throw new Error('Impossible de joindre le serveur. Vérifiez votre connexion.')
   }
 
   if (res.status === 204) return undefined as T
+
+  if (RETRYABLE.has(res.status) && _retries > 0) {
+    await delay(1000)
+    return apiRequest<T>(path, options, _retries - 1)
+  }
+
+  if (res.status === 401) {
+    window.dispatchEvent(new CustomEvent('auth:unauthorized'))
+  }
 
   if (!res.ok) throw new Error(await extractError(res))
 
