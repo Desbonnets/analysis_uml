@@ -1,6 +1,6 @@
 import { useState, useEffect, useCallback } from 'react'
 import { useParams, Link } from 'react-router-dom'
-import { ArrowLeft, GitBranch, AlertTriangle, BarChart2, Plus, Link2, Copy, Check, RefreshCw } from 'lucide-react'
+import { ArrowLeft, GitBranch, AlertTriangle, BarChart2, Link2, Copy, Check, RefreshCw } from 'lucide-react'
 import Header from '../components/layout/Header'
 import Pill from '../components/ui/Pill'
 import AnalysisCard from '../components/analysis/AnalysisCard'
@@ -8,23 +8,11 @@ import AnalysisResultModal from '../components/analysis/AnalysisResultModal'
 import { useAuth } from '../context/AuthContext'
 import { useAnalysis } from '../context/AnalysisContext'
 import { getProjectById, generateProjectToken } from '../api/projects'
-import diagramsData from '../data/diagrams.json'
-import violationsData from '../data/violations.json'
-import type { Project, Diagram, Violation } from '../types'
-
-const diagrams  = diagramsData  as Diagram[]
-const violations = violationsData as Violation[]
+import { getAnalysisHistory } from '../api/analysis'
+import type { Project, AnalysisHistoryEntry } from '../types'
 
 const scoreColor = (s: number) => s >= 80 ? 'var(--ok)' : s >= 60 ? 'var(--warn)' : 'var(--bad)'
 const scoreBg    = (s: number) => s >= 80 ? 'var(--ok)'  : s >= 60 ? 'var(--warn)' : 'var(--bad)'
-
-const sevTone: Record<string, 'bad' | 'warn' | 'info' | 'neutral'> = {
-  critical: 'bad', high: 'warn', medium: 'info', low: 'neutral',
-}
-
-const typeTone: Record<string, 'info' | 'ok' | 'warn' | 'neutral'> = {
-  class: 'info', dependency: 'neutral', package: 'ok', sequence: 'warn',
-}
 
 const statusTone: Record<string, 'ok' | 'warn' | 'bad' | 'neutral'> = {
   analyzed: 'ok', pending: 'warn', error: 'bad', new: 'neutral',
@@ -40,6 +28,7 @@ export default function ProjectDetail() {
   const { state: analysisState } = useAnalysis()
   const [project, setProject] = useState<Project | null>(null)
   const [loading, setLoading] = useState(true)
+  const [history, setHistory] = useState<AnalysisHistoryEntry[]>([])
   const [apiToken, setApiToken] = useState<string | null>(null)
   const [tokenLoading, setTokenLoading] = useState(false)
   const [copied, setCopied] = useState<string | null>(null)
@@ -51,6 +40,13 @@ export default function ProjectDetail() {
       .then(setProject)
       .catch(() => setProject(null))
       .finally(() => setLoading(false))
+  }, [id])
+
+  useEffect(() => {
+    if (!id) return
+    getAnalysisHistory(parseInt(id, 10))
+      .then(setHistory)
+      .catch(() => setHistory([]))
   }, [id])
 
   const handleGenerateToken = useCallback(async () => {
@@ -71,9 +67,6 @@ export default function ProjectDetail() {
       setTimeout(() => setCopied(null), 2000)
     })
   }, [])
-
-  const projectDiagrams  = diagrams.filter(d => d.projectId === id)
-  const projectViolations = violations.filter(v => v.projectId === id)
 
   if (loading) return (
     <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', height: '100vh', color: 'var(--fg-2)', fontSize: 14 }}>
@@ -140,15 +133,17 @@ export default function ProjectDetail() {
               <h3 style={{ margin: 0, fontSize: 14, fontWeight: 600, color: 'var(--fg-0)', display: 'flex', alignItems: 'center', gap: 8 }}>
                 <GitBranch size={14} style={{ color: 'var(--accent)' }} /> Diagrammes UML
               </h3>
-              <button style={{ display: 'flex', alignItems: 'center', gap: 4, fontSize: 12, color: 'var(--accent)', background: 'none', border: 'none', cursor: 'pointer' }}>
-                <Plus size={12} /> Nouveau
-              </button>
+              {history.length > 0 && (
+                <Link to={`/diagrams`} style={{ fontSize: 12, color: 'var(--accent)', textDecoration: 'none' }}>
+                  Voir tout →
+                </Link>
+              )}
             </div>
 
-            {projectDiagrams.length > 0 ? (
+            {history.length > 0 ? (
               <div style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
-                {projectDiagrams.map(d => (
-                  <Link key={d.id} to={`/diagrams/${d.id}`}
+                {history.slice(0, 5).map(entry => (
+                  <Link key={entry.recordId} to={`/diagrams/${id}/${entry.recordId}`}
                     style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '8px 10px', borderRadius: 6, textDecoration: 'none', transition: 'background 120ms' }}
                     onMouseEnter={e => (e.currentTarget as HTMLElement).style.background = 'var(--bg-2)'}
                     onMouseLeave={e => (e.currentTarget as HTMLElement).style.background = 'transparent'}
@@ -157,17 +152,21 @@ export default function ProjectDetail() {
                       <GitBranch size={13} style={{ color: 'var(--info)' }} />
                     </div>
                     <div style={{ flex: 1, minWidth: 0 }}>
-                      <p style={{ margin: 0, fontSize: 12, fontWeight: 500, color: 'var(--fg-0)', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{d.name}</p>
-                      <p style={{ margin: 0, fontSize: 11, color: 'var(--fg-2)', marginTop: 1 }}>{d.classes.length} classes · {new Date(d.updatedAt).toLocaleDateString('fr-FR')}</p>
+                      <p style={{ margin: 0, fontSize: 12, fontWeight: 500, color: 'var(--fg-0)', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+                        Analyse du {new Date(entry.analyzedAt).toLocaleDateString('fr-FR', { day: '2-digit', month: 'short', year: 'numeric' })}
+                      </p>
+                      <p style={{ margin: 0, fontSize: 11, color: 'var(--fg-2)', marginTop: 1 }}>
+                        {entry.filesAnalyzed} fichiers · {entry.classesFound} classes
+                      </p>
                     </div>
-                    <Pill tone={typeTone[d.type]} square>{d.type}</Pill>
+                    <Pill tone="info" square>UML</Pill>
                   </Link>
                 ))}
               </div>
             ) : (
               <div style={{ textAlign: 'center', padding: '32px 0', color: 'var(--fg-2)' }}>
                 <GitBranch size={28} style={{ margin: '0 auto 8px', opacity: 0.3, display: 'block' }} />
-                <p style={{ fontSize: 12, margin: 0 }}>Aucun diagramme</p>
+                <p style={{ fontSize: 12, margin: 0 }}>Aucune analyse — uploadez un ZIP pour générer les diagrammes</p>
               </div>
             )}
           </div>
@@ -175,38 +174,13 @@ export default function ProjectDetail() {
           <div className="card">
             <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 14 }}>
               <h3 style={{ margin: 0, fontSize: 14, fontWeight: 600, color: 'var(--fg-0)', display: 'flex', alignItems: 'center', gap: 8 }}>
-                <AlertTriangle size={14} style={{ color: 'var(--warn)' }} /> Violations ({projectViolations.length})
+                <AlertTriangle size={14} style={{ color: 'var(--warn)' }} /> Violations
               </h3>
-              <Link to="/analysis" style={{ fontSize: 12, color: 'var(--accent)', textDecoration: 'none' }}>
-                Voir l'analyse →
-              </Link>
             </div>
-
-            {projectViolations.length > 0 ? (
-              <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
-                {projectViolations.slice(0, 5).map(v => (
-                  <div key={v.id} style={{ display: 'flex', alignItems: 'flex-start', gap: 10, padding: '8px 10px', borderRadius: 6, background: 'var(--bg-0)' }}>
-                    <Pill tone={sevTone[v.severity]} square>{v.severity}</Pill>
-                    <div style={{ flex: 1, minWidth: 0 }}>
-                      <p style={{ margin: 0, fontSize: 12, fontWeight: 500, color: 'var(--fg-0)' }}>{v.title}</p>
-                      <p className="mono" style={{ margin: '2px 0 0', fontSize: 10, color: 'var(--fg-2)', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
-                        {v.file}:{v.line}
-                      </p>
-                    </div>
-                  </div>
-                ))}
-                {projectViolations.length > 5 && (
-                  <p style={{ fontSize: 11, color: 'var(--fg-2)', textAlign: 'center', margin: '4px 0 0' }}>
-                    +{projectViolations.length - 5} autres violations
-                  </p>
-                )}
-              </div>
-            ) : (
-              <div style={{ textAlign: 'center', padding: '32px 0', color: 'var(--fg-2)' }}>
-                <BarChart2 size={28} style={{ margin: '0 auto 8px', opacity: 0.3, display: 'block' }} />
-                <p style={{ fontSize: 12, margin: 0 }}>Aucune violation détectée</p>
-              </div>
-            )}
+            <div style={{ textAlign: 'center', padding: '32px 0', color: 'var(--fg-2)' }}>
+              <BarChart2 size={28} style={{ margin: '0 auto 8px', opacity: 0.3, display: 'block' }} />
+              <p style={{ fontSize: 12, margin: 0 }}>Disponible prochainement avec SonarQube</p>
+            </div>
           </div>
         </div>
         {project.ownerEmail === user?.email && (
