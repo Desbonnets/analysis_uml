@@ -14,14 +14,6 @@ import type { Project, AnalysisHistoryEntry } from '../types'
 const scoreColor = (s: number) => s >= 80 ? 'var(--ok)' : s >= 60 ? 'var(--warn)' : 'var(--bad)'
 const scoreBg    = (s: number) => s >= 80 ? 'var(--ok)'  : s >= 60 ? 'var(--warn)' : 'var(--bad)'
 
-const sevTone: Record<string, 'bad' | 'warn' | 'info' | 'neutral'> = {
-  critical: 'bad', high: 'warn', medium: 'info', low: 'neutral',
-}
-
-const typeTone: Record<string, 'info' | 'ok' | 'warn' | 'neutral'> = {
-  class: 'info', dependency: 'neutral', package: 'ok', sequence: 'warn',
-}
-
 const statusTone: Record<string, 'ok' | 'warn' | 'bad' | 'neutral'> = {
   analyzed: 'ok', pending: 'warn', error: 'bad', new: 'neutral',
 }
