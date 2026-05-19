@@ -43,28 +43,26 @@ describe('apiRequest', () => {
     vi.mocked(fetch).mockResolvedValue(
       new Response(JSON.stringify({ status: 401 }), { status: 401 }),
     )
-    await expect(apiRequest('/test', {}, 'token')).rejects.toThrow('Session expirée')
+    await expect(apiRequest('/test')).rejects.toThrow('Session expirée')
   })
 
   it('maps 403 to access-denied message', async () => {
     vi.mocked(fetch).mockResolvedValue(
       new Response(JSON.stringify({}), { status: 403 }),
     )
-    await expect(apiRequest('/test', {}, 'token')).rejects.toThrow('Accès refusé')
+    await expect(apiRequest('/test')).rejects.toThrow('Accès refusé')
   })
 
-  it('sends Authorization header when a token is provided', async () => {
+  it('always sends credentials: include for cookie-based auth', async () => {
     vi.mocked(fetch).mockResolvedValue(new Response(JSON.stringify({}), { status: 200 }))
-    await apiRequest('/test', {}, 'my-token')
+    await apiRequest('/test')
     expect(fetch).toHaveBeenCalledWith(
       expect.stringContaining('/test'),
-      expect.objectContaining({
-        headers: expect.objectContaining({ Authorization: 'Bearer my-token' }),
-      }),
+      expect.objectContaining({ credentials: 'include' }),
     )
   })
 
-  it('does not send Authorization header when no token', async () => {
+  it('does not send an Authorization header by default', async () => {
     vi.mocked(fetch).mockResolvedValue(new Response(JSON.stringify({}), { status: 200 }))
     await apiRequest('/test')
     const [, opts] = vi.mocked(fetch).mock.calls[0]
