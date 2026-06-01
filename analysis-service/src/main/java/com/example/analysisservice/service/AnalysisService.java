@@ -3,6 +3,7 @@ package com.example.analysisservice.service;
 import com.example.analysisservice.dto.AnalysisHistoryEntry;
 import com.example.analysisservice.dto.AnalysisRecord;
 import com.example.analysisservice.dto.AnalysisResponse;
+import com.example.analysisservice.dto.IngestRequest;
 import com.example.analysisservice.model.CodeUnit;
 import com.example.analysisservice.model.Language;
 import com.example.analysisservice.parser.ParserFactory;
@@ -79,6 +80,53 @@ public class AnalysisService {
     }
 
     // -------------------------------------------------------------------------
+    // Ingest (pre-computed, no ZIP)
+    // -------------------------------------------------------------------------
+
+    public AnalysisResponse ingest(Long projectId, String projectName, IngestRequest request) {
+        String recordId = StorageService.newRecordId();
+        LocalDateTime now = LocalDateTime.now();
+
+        String effectiveName = resolveProjectName(projectName, request.getProjectName(), projectId);
+        int classesFound = request.getClassesFound() > 0
+                ? request.getClassesFound()
+                : request.getCodeUnits().stream().mapToInt(u -> u.getClasses().size()).sum();
+
+        AnalysisRecord record = AnalysisRecord.builder()
+                .recordId(recordId)
+                .projectId(projectId)
+                .projectName(effectiveName)
+                .analyzedAt(now)
+                .zipStorageKey(null)
+                .filesAnalyzed(request.getFilesAnalyzed())
+                .classesFound(classesFound)
+                .unsupportedLanguages(request.getUnsupportedLanguages())
+                .codeUnits(request.getCodeUnits())
+                .build();
+
+        try {
+            byte[] json = objectMapper.writeValueAsBytes(record);
+            storageService.saveRecord(projectId, effectiveName, recordId, json);
+        } catch (Exception e) {
+            log.warn("Could not persist ingest record for project {}: {}", projectId, e.getMessage());
+        }
+
+        log.info("Project {} — ingest {} files, {} classes", projectId, request.getFilesAnalyzed(), classesFound);
+
+        return AnalysisResponse.builder()
+                .recordId(recordId)
+                .projectId(projectId)
+                .storageKey("projects/" + projectId + "/history/")
+                .status("analyzed")
+                .message(buildMessage(request.getFilesAnalyzed(), classesFound, request.getUnsupportedLanguages()))
+                .filesAnalyzed(request.getFilesAnalyzed())
+                .classesFound(classesFound)
+                .codeUnits(request.getCodeUnits())
+                .unsupportedLanguages(request.getUnsupportedLanguages())
+                .build();
+    }
+
+    // -------------------------------------------------------------------------
     // History
     // -------------------------------------------------------------------------
 
@@ -121,6 +169,12 @@ public class AnalysisService {
     // -------------------------------------------------------------------------
     // Internal
     // -------------------------------------------------------------------------
+
+    private String resolveProjectName(String fromParam, String fromBody, Long projectId) {
+        if (fromParam != null && !fromParam.isBlank()) return fromParam;
+        if (fromBody  != null && !fromBody.isBlank())  return fromBody;
+        return "projet-" + projectId;
+    }
 
     private void persistRecord(Long projectId, String projectName, String recordId,
                                LocalDateTime analyzedAt, String zipKey, AnalysisResponse response) {

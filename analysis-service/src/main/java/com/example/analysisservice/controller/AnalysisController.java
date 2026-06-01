@@ -2,6 +2,7 @@ package com.example.analysisservice.controller;
 
 import com.example.analysisservice.dto.AnalysisHistoryEntry;
 import com.example.analysisservice.dto.AnalysisResponse;
+import com.example.analysisservice.dto.IngestRequest;
 import com.example.analysisservice.service.AnalysisService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.MediaType;
@@ -36,6 +37,23 @@ public class AnalysisController {
 
         String name = projectName.isBlank() ? "projet-" + projectId : projectName;
         AnalysisResponse response = analysisService.upload(projectId, name, file);
+        return ResponseEntity.accepted().body(response);
+    }
+
+    /**
+     * POST /analysis/{projectId}/ingest
+     * Accept pre-computed analysis results (no ZIP upload).
+     * Used by CI pipelines (e.g. SonarQube) that run analysis locally.
+     */
+    @PostMapping(value = "/{projectId}/ingest", consumes = MediaType.APPLICATION_JSON_VALUE)
+    public ResponseEntity<AnalysisResponse> ingest(
+            @PathVariable Long projectId,
+            @RequestBody IngestRequest request,
+            @RequestParam(value = "projectName", required = false, defaultValue = "") String projectName,
+            @AuthenticationPrincipal UserDetails userDetails) {
+
+        String name = projectName.isBlank() ? null : projectName;
+        AnalysisResponse response = analysisService.ingest(projectId, name, request);
         return ResponseEntity.accepted().body(response);
     }
 
