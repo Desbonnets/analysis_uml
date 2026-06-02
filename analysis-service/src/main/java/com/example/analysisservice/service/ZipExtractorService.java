@@ -33,17 +33,19 @@ public class ZipExtractorService {
     private final ObjectMapper jsonMapper = new ObjectMapper();
 
     public Map<String, byte[]> extractSourceFiles(byte[] zipBytes) throws IOException {
-        List<String> customExclusions = readCustomExclusions(zipBytes);
-        if (!customExclusions.isEmpty()) {
-            log.info("analysis config — {} custom exclusion(s): {}", customExclusions.size(), customExclusions);
-        }
+        AnalysisConfig config = readConfig(zipBytes);
+        List<String> includes = config.getInclude() == null ? List.of() : config.getInclude();
+        List<String> excludes = config.getExclude() == null ? List.of() : config.getExclude();
+
+        if (!includes.isEmpty()) log.info("analysis config — include filter: {}", includes);
+        if (!excludes.isEmpty()) log.info("analysis config — exclude filter: {}", excludes);
 
         Map<String, byte[]> result = new LinkedHashMap<>();
         try (ZipInputStream zis = new ZipInputStream(new ByteArrayInputStream(zipBytes))) {
             ZipEntry entry;
             while ((entry = zis.getNextEntry()) != null) {
                 String name = entry.getName();
-                if (!entry.isDirectory() && isSupported(name, customExclusions)) {
+                if (!entry.isDirectory() && isSupported(name, includes, excludes)) {
                     byte[] content = readSafely(zis, name);
                     if (content != null) {
                         result.put(name, content);
@@ -56,8 +58,8 @@ public class ZipExtractorService {
         return result;
     }
 
-    // First pass: find the config file and parse exclusion patterns.
-    private List<String> readCustomExclusions(byte[] zipBytes) {
+    // First pass: find the config file and parse it.
+    private AnalysisConfig readConfig(byte[] zipBytes) {
         try (ZipInputStream zis = new ZipInputStream(new ByteArrayInputStream(zipBytes))) {
             ZipEntry entry;
             while ((entry = zis.getNextEntry()) != null) {
@@ -74,19 +76,17 @@ public class ZipExtractorService {
         } catch (IOException e) {
             log.warn("Could not scan ZIP for analysis config: {}", e.getMessage());
         }
-        return List.of();
+        return new AnalysisConfig();
     }
 
-    private List<String> parseConfig(String filename, byte[] raw) {
+    private AnalysisConfig parseConfig(String filename, byte[] raw) {
         try {
             String content = new String(raw, StandardCharsets.UTF_8);
             ObjectMapper mapper = filename.endsWith(".json") ? jsonMapper : yamlMapper;
-            AnalysisConfig config = mapper.readValue(content, AnalysisConfig.class);
-            List<String> exclusions = config.getExclude();
-            return exclusions == null ? List.of() : exclusions;
+            return mapper.readValue(content, AnalysisConfig.class);
         } catch (Exception e) {
             log.warn("Could not parse {}: {}", filename, e.getMessage());
-            return List.of();
+            return new AnalysisConfig();
         }
     }
 
@@ -106,16 +106,24 @@ public class ZipExtractorService {
         return baos.toByteArray();
     }
 
-    private boolean isSupported(String filename, List<String> customExclusions) {
+    private boolean isSupported(String filename, List<String> includes, List<String> excludes) {
         int dot = filename.lastIndexOf('.');
         if (dot < 0) return false;
-        // built-in path exclusions
+        // built-in path exclusions (always applied)
         if (filename.contains("node_modules/") || filename.contains("/.git/")
                 || filename.contains("/target/") || filename.contains("/__pycache__/")) {
             return false;
         }
-        // user-defined exclusions from analysis.yml
-        for (String pattern : customExclusions) {
+        // include whitelist — file must match at least one pattern
+        if (!includes.isEmpty()) {
+            boolean matched = false;
+            for (String pattern : includes) {
+                if (filename.contains(pattern)) { matched = true; break; }
+            }
+            if (!matched) return false;
+        }
+        // exclude blacklist
+        for (String pattern : excludes) {
             if (filename.contains(pattern)) return false;
         }
         return SUPPORTED.contains(filename.substring(dot + 1).toLowerCase());
