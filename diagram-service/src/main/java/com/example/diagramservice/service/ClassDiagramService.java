@@ -8,6 +8,7 @@ import com.example.diagramservice.model.AnalysisHistoryEntry;
 import com.example.diagramservice.model.AnalysisRecord;
 import com.example.diagramservice.model.ClassDef;
 import com.example.diagramservice.model.CodeUnit;
+import com.example.diagramservice.model.OrmRelation;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
@@ -74,6 +75,19 @@ public class ClassDiagramService {
                                 .build());
                     }
                 }
+
+                if (c.getOrmRelations() != null) {
+                    for (OrmRelation rel : c.getOrmRelations()) {
+                        String targetQn = resolveQualifiedName(rel.getTargetEntity(), internalClasses);
+                        if (targetQn != null && !targetQn.equals(c.getQualifiedName())) {
+                            edges.add(DiagramEdge.builder()
+                                    .from(c.getQualifiedName())
+                                    .to(targetQn)
+                                    .type(rel.getRelationType())
+                                    .build());
+                        }
+                    }
+                }
             }
         }
 
@@ -132,5 +146,16 @@ public class ClassDiagramService {
         if (qualifiedName == null) return "";
         int last = qualifiedName.lastIndexOf('.');
         return last > 0 ? qualifiedName.substring(0, last) : "";
+    }
+
+    // Resolves a simple class name (e.g. "Category") to its qualified name
+    // (e.g. "App.Entity.Category") by scanning the set of known internal classes.
+    private String resolveQualifiedName(String simpleName, Set<String> internalClasses) {
+        if (simpleName == null) return null;
+        if (internalClasses.contains(simpleName)) return simpleName;
+        return internalClasses.stream()
+                .filter(qn -> qn.equals(simpleName) || qn.endsWith("." + simpleName))
+                .findFirst()
+                .orElse(null);
     }
 }

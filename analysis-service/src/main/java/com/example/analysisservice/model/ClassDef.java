@@ -17,4 +17,5 @@ public class ClassDef {
     @Builder.Default private List<MethodDef> methods = new java.util.ArrayList<>();
     @Builder.Default private List<FieldDef> fields = new java.util.ArrayList<>();
     @Builder.Default private List<String> dependencies = new java.util.ArrayList<>();
+    @Builder.Default private List<OrmRelation> ormRelations = new java.util.ArrayList<>();
 }
