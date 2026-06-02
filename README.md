@@ -232,6 +232,56 @@ Un admin seedé via les variables d'env `SEED_ADMIN_EMAIL`, `SEED_ADMIN_PASSWORD
 
 ---
 
+## Filtrage des fichiers analysés
+
+### Exclusions intégrées
+
+Certains chemins sont toujours ignorés, quelle que soit la configuration :
+
+| Chemin | Raison |
+|--------|--------|
+| `node_modules/` | Dépendances npm/yarn |
+| `/.git/` | Métadonnées Git |
+| `/target/` | Artefacts de build Maven |
+| `/__pycache__/` | Bytecode Python |
+
+Seuls les fichiers avec les extensions suivantes sont analysés : `.java`, `.js`, `.mjs`, `.ts`, `.tsx`, `.py`, `.php`, `.c`, `.h`, `.cpp`, `.cc`, `.cxx`, `.hpp`. Les fichiers dépassant **10 Mo** sont ignorés individuellement.
+
+### Fichier de configuration personnalisé
+
+Pour exclure des répertoires supplémentaires propres au projet (ex. `vendor/`, `dist/`, `coverage/`), créez un fichier `analysis.yml` à la racine de votre ZIP :
+
+```yaml
+exclude:
+  - vendor/
+  - dist/
+  - build/
+  - coverage/
+  - tests/fixtures/
+```
+
+Le fichier peut aussi s'appeler `analysis.yaml` ou `analysis.json` :
+
+```json
+{
+  "exclude": ["vendor/", "dist/", "coverage/"]
+}
+```
+
+Structure du ZIP attendue :
+
+```
+monprojet.zip
+├── analysis.yml        ← lu en premier, avant extraction
+├── src/
+│   └── ...
+└── vendor/             ← ignoré grâce au pattern "vendor/"
+```
+
+Chaque pattern est appliqué via une correspondance de sous-chaîne sur le chemin complet de l'entrée ZIP — `vendor/` exclut `monprojet/vendor/autoload.php` aussi bien que `vendor/lib/foo.php`. Si le fichier de config est absent ou invalide, les exclusions intégrées s'appliquent normalement (avertissement loggué).
+
+---
+
 ## Database
 
 PostgreSQL 16 with three databases created via `init-db.sql`:

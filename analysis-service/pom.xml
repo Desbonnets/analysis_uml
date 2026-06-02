@@ -72,6 +72,12 @@
 			<scope>runtime</scope>
 		</dependency>
 
+		<!-- YAML support for analysis.yml config files inside ZIP uploads -->
+		<dependency>
+			<groupId>com.fasterxml.jackson.dataformat</groupId>
+			<artifactId>jackson-dataformat-yaml</artifactId>
+		</dependency>
+
 		<dependency>
 			<groupId>org.projectlombok</groupId>
 			<artifactId>lombok</artifactId>
