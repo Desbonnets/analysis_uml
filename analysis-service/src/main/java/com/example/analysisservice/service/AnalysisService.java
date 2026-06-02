@@ -17,7 +17,6 @@ import org.springframework.stereotype.Service;
 import org.springframework.web.multipart.MultipartFile;
 import org.springframework.web.server.ResponseStatusException;
 
-import java.io.ByteArrayInputStream;
 import java.io.IOException;
 import java.time.LocalDateTime;
 import java.util.ArrayList;
@@ -232,7 +231,7 @@ public class AnalysisService {
     private List<CodeUnit> analyzeZip(Long projectId, byte[] zipContent, List<String> unsupportedLanguages) {
         try {
             Map<String, byte[]> sourceFiles =
-                    zipExtractorService.extractSourceFiles(new ByteArrayInputStream(zipContent));
+                    zipExtractorService.extractSourceFiles(zipContent);
 
             Map<Language, Map<String, byte[]>> byLanguage = sourceFiles.entrySet().stream()
                     .collect(Collectors.groupingBy(
