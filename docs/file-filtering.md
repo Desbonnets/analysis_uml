@@ -35,6 +35,33 @@ Per-language parsers
 
 This is the entry point of the filter chain. It reads the ZIP stream entry by entry and applies three independent guards before keeping a file.
 
+### 0. User config (analysis.yml)
+
+Before extracting files, a first pass reads `analysis.yml` / `analysis.yaml` / `analysis.json` from anywhere in the ZIP. The parsed config drives two optional filters applied after the built-in guards:
+
+| Field | Type | Behaviour |
+|-------|------|-----------|
+| `include` | `List<String>` | **Whitelist** — only files whose path contains at least one pattern are kept. If the list is empty, all files pass. |
+| `exclude` | `List<String>` | **Blacklist** — files whose path contains any pattern are dropped. |
+
+When both are present, `include` is evaluated first, then `exclude` on the remaining set.
+
+```yaml
+# analysis.yml — place at the root of the ZIP
+include:
+  - src/
+exclude:
+  - src/generated/
+```
+
+```json
+// analysis.json
+{
+  "include": ["src/"],
+  "exclude": ["src/generated/"]
+}
+```
+
 ### 1. Supported extension whitelist
 
 ```java
@@ -130,11 +157,15 @@ These checks reject the entire request early — no extraction occurs.
 
 ---
 
-## Adding a new exclusion
+## Modifying filters
 
-### Exclude an additional directory
+### Add a built-in excluded directory
 
-In `ZipExtractorService.isSupported()`, add a `|| filename.contains("/your-dir/")` clause to the existing path check (lines 63-65).
+In `ZipExtractorService.isSupported()`, add a `|| filename.contains("/your-dir/")` clause to the built-in path check block.
+
+### Add include/exclude patterns at runtime
+
+Users declare them in `analysis.yml` inside their ZIP — no code change needed.
 
 ### Exclude a new file extension
 

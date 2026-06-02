@@ -8,15 +8,19 @@ import java.util.List;
 /**
  * Parsed from analysis.yml / analysis.yaml / analysis.json at the root of a ZIP upload.
  *
- * Example:
+ * Use either include (whitelist) or exclude (blacklist), or both:
  * <pre>
  * exclude:
  *   - vendor/
  *   - dist/
- *   - coverage/
+ *
+ * include:
+ *   - src/
+ *   - lib/
  * </pre>
  */
 @Data
 public class AnalysisConfig {
+    private List<String> include = new ArrayList<>();
     private List<String> exclude = new ArrayList<>();
 }

@@ -249,7 +249,9 @@ Seuls les fichiers avec les extensions suivantes sont analysés : `.java`, `.js`
 
 ### Fichier de configuration personnalisé
 
-Pour exclure des répertoires supplémentaires propres au projet (ex. `vendor/`, `dist/`, `coverage/`), créez un fichier `analysis.yml` à la racine de votre ZIP :
+Créez un fichier `analysis.yml` (ou `analysis.yaml` / `analysis.json`) à la racine de votre ZIP. Deux modes sont disponibles, utilisables séparément ou ensemble :
+
+**`exclude` — liste noire** : ignore les chemins correspondants, analyse tout le reste.
 
 ```yaml
 exclude:
@@ -260,11 +262,29 @@ exclude:
   - tests/fixtures/
 ```
 
-Le fichier peut aussi s'appeler `analysis.yaml` ou `analysis.json` :
+**`include` — liste blanche** : n'analyse que les chemins correspondants, ignore tout le reste.
+
+```yaml
+include:
+  - src/
+  - lib/
+```
+
+**Combinaison** : `include` restreint d'abord le périmètre, puis `exclude` retire des entrées de ce périmètre.
+
+```yaml
+include:
+  - src/
+exclude:
+  - src/generated/
+```
+
+Équivalent JSON :
 
 ```json
 {
-  "exclude": ["vendor/", "dist/", "coverage/"]
+  "include": ["src/"],
+  "exclude": ["src/generated/"]
 }
 ```
 
@@ -275,7 +295,7 @@ monprojet.zip
 ├── analysis.yml        ← lu en premier, avant extraction
 ├── src/
 │   └── ...
-└── vendor/             ← ignoré grâce au pattern "vendor/"
+└── vendor/             ← ignoré si "vendor/" est dans exclude
 ```
 
 Chaque pattern est appliqué via une correspondance de sous-chaîne sur le chemin complet de l'entrée ZIP — `vendor/` exclut `monprojet/vendor/autoload.php` aussi bien que `vendor/lib/foo.php`. Si le fichier de config est absent ou invalide, les exclusions intégrées s'appliquent normalement (avertissement loggué).
