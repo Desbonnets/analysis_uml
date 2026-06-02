@@ -36,9 +36,39 @@ public class PhpLanguageParser implements LanguageParser {
             "(?m)^[ \\t]*(?:(public|private|protected)\\s+)?(?:(static)\\s+)?(?:(abstract)\\s+)?function\\s+(\\w+)\\s*\\(([^)]*)\\)" +
             "(?:\\s*:\\s*\\??[\\w\\\\]+)?\\s*(?:\\{|;)"
     );
-    // Matches: [visibility] [static] [?type] $varName [= ...];
     private static final Pattern PROPERTY_RE = Pattern.compile(
             "(?m)^[ \\t]*(?:(public|private|protected)\\s+)?(?:(static)\\s+)?(?:\\??[\\w\\\\]+\\s+)?(\\$\\w+)\\s*(?:=|;)"
+    );
+
+    // PHP 8 attribute with explicit targetEntity:
+    //   #[ORM\ManyToOne(targetEntity: Category::class, ...)]
+    private static final Pattern ORM_ATTR_TARGET_RE = Pattern.compile(
+            "#\\[ORM\\\\(ManyToOne|OneToMany|ManyToMany|OneToOne)\\s*\\([^)]*?targetEntity\\s*:\\s*(\\w+)::class",
+            Pattern.CASE_INSENSITIVE | Pattern.DOTALL
+    );
+
+    // PHP 8 attribute without targetEntity — infer from the typed property that follows:
+    //   #[ORM\ManyToOne(inversedBy: 'products')]
+    //   #[ORM\JoinColumn(nullable: false)]       ← optional extra attributes
+    //   private ?Category $category;
+    private static final Pattern ORM_ATTR_INFER_RE = Pattern.compile(
+            "#\\[ORM\\\\(ManyToOne|OneToMany|ManyToMany|OneToOne)(?:\\([^)]*\\))?\\]" +
+            "(?:\\s*#\\[[^\\]]*\\])*" +
+            "\\s*(?:public|private|protected)\\s+(?:readonly\\s+)?\\??(\\w+)\\s+\\$",
+            Pattern.CASE_INSENSITIVE | Pattern.DOTALL
+    );
+
+    // PHPDoc annotation:
+    //   @ORM\ManyToOne(targetEntity="Category") or targetEntity=Category::class
+    private static final Pattern ORM_DOC_RE = Pattern.compile(
+            "@ORM\\\\(ManyToOne|OneToMany|ManyToMany|OneToOne)\\s*\\([^)]*?targetEntity\\s*=\\s*[\"']?(\\w+)",
+            Pattern.CASE_INSENSITIVE
+    );
+
+    private static final Set<String> PHP_PRIMITIVES = Set.of(
+            "string", "int", "float", "bool", "array", "null", "void",
+            "mixed", "iterable", "callable", "object", "resource", "never",
+            "self", "static", "parent"
     );
 
     @Override
@@ -95,6 +125,7 @@ public class PhpLanguageParser implements LanguageParser {
             String body = extractBody(source, m.end() - 1);
             List<MethodDef> methods = extractMethods(body);
             List<FieldDef> fields = extractProperties(body);
+            List<OrmRelation> ormRelations = extractOrmRelations(body);
 
             out.add(ClassDef.builder()
                     .name(name)
@@ -106,6 +137,7 @@ public class PhpLanguageParser implements LanguageParser {
                     .methods(methods)
                     .fields(fields)
                     .dependencies(buildDeps(name, fields, methods))
+                    .ormRelations(ormRelations)
                     .build());
         }
     }
@@ -145,6 +177,56 @@ public class PhpLanguageParser implements LanguageParser {
                     .fields(fields)
                     .build());
         }
+    }
+
+    private List<OrmRelation> extractOrmRelations(String body) {
+        List<OrmRelation> relations = new ArrayList<>();
+        Set<String> seen = new HashSet<>();
+
+        // PHP 8 attribute with explicit targetEntity
+        Matcher m1 = ORM_ATTR_TARGET_RE.matcher(body);
+        while (m1.find()) {
+            addRelation(relations, seen, m1.group(1), m1.group(2));
+        }
+
+        // PHP 8 attribute — infer target from the property type that follows
+        Matcher m2 = ORM_ATTR_INFER_RE.matcher(body);
+        while (m2.find()) {
+            String target = m2.group(2);
+            if (!PHP_PRIMITIVES.contains(target.toLowerCase())) {
+                addRelation(relations, seen, m2.group(1), target);
+            }
+        }
+
+        // PHPDoc annotations
+        Matcher m3 = ORM_DOC_RE.matcher(body);
+        while (m3.find()) {
+            addRelation(relations, seen, m3.group(1), m3.group(2));
+        }
+
+        return relations;
+    }
+
+    private void addRelation(List<OrmRelation> relations, Set<String> seen,
+                             String rawType, String targetEntity) {
+        String type = normalizeRelationType(rawType);
+        String key = type + ":" + targetEntity;
+        if (seen.add(key)) {
+            relations.add(OrmRelation.builder()
+                    .relationType(type)
+                    .targetEntity(targetEntity)
+                    .build());
+        }
+    }
+
+    private String normalizeRelationType(String raw) {
+        return switch (raw.toLowerCase()) {
+            case "manytoone"  -> "MANY_TO_ONE";
+            case "onetomany"  -> "ONE_TO_MANY";
+            case "manytomany" -> "MANY_TO_MANY";
+            case "onetoone"   -> "ONE_TO_ONE";
+            default           -> raw.toUpperCase();
+        };
     }
 
     private List<MethodDef> extractMethods(String body) {
@@ -215,7 +297,6 @@ public class PhpLanguageParser implements LanguageParser {
         List<String> types = new ArrayList<>();
         for (String param : paramsStr.split(",")) {
             String trimmed = param.trim();
-            // Pattern: [?]TypeHint $varName
             String[] parts = trimmed.split("\\$");
             if (parts.length >= 2 && !parts[0].isBlank()) {
                 types.add(parts[0].trim().replace("?", "").replace("\\", "."));

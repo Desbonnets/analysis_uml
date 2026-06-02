@@ -20,4 +20,5 @@ public class ClassDef {
     private List<MethodDef> methods = new ArrayList<>();
     private List<FieldDef> fields = new ArrayList<>();
     private List<String> dependencies = new ArrayList<>();
+    private List<OrmRelation> ormRelations = new ArrayList<>();
 }
