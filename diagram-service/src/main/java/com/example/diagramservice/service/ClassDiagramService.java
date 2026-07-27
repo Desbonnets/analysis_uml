@@ -27,18 +27,21 @@ public class ClassDiagramService {
 
     private final AnalysisClient analysisClient;
 
-    public ClassDiagramDto generate(Long projectId, String recordId, String authHeader) {
+    public ClassDiagramDto generate(Long projectId, String recordId, String filter, String authHeader) {
         if (recordId == null) {
             recordId = resolveLatestRecordId(projectId, authHeader);
         }
 
         AnalysisRecord record = analysisClient.getRecord(projectId, recordId, authHeader);
+        boolean entitiesOnly = "entities".equalsIgnoreCase(filter);
 
         Set<String> internalClasses = new HashSet<>();
         for (CodeUnit cu : record.getCodeUnits()) {
             for (ClassDef c : cu.getClasses()) {
                 if (c.getQualifiedName() != null) {
-                    internalClasses.add(c.getQualifiedName());
+                    if (!entitiesOnly || c.isDoctrineEntity()) {
+                        internalClasses.add(c.getQualifiedName());
+                    }
                 }
             }
         }
@@ -48,6 +51,7 @@ public class ClassDiagramService {
 
         for (CodeUnit cu : record.getCodeUnits()) {
             for (ClassDef c : cu.getClasses()) {
+                if (entitiesOnly && !c.isDoctrineEntity()) continue;
                 nodes.add(buildNode(c, cu.getPackageName()));
 
                 if (c.getSuperClass() != null && !c.getSuperClass().isBlank()) {

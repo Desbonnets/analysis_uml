@@ -38,6 +38,8 @@ const typeColors: Record<string, { bg: string; header: string; text: string; bad
 const edgeColors: Record<string, string> = {
   EXTENDS: '#A78BFA', IMPLEMENTS: '#60A5FA', USES: '#6E7A88',
   DEPENDS_ON: '#3FB984',
+  MANY_TO_ONE: '#F59E0B', ONE_TO_MANY: '#F59E0B',
+  MANY_TO_MANY: '#EF4444', ONE_TO_ONE: '#10B981',
 }
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
@@ -218,6 +220,7 @@ export default function DiagramEditor() {
   const [classDiagram, setClassDiagram] = useState<ClassDiagramDto | null>(null)
   const [depGraph, setDepGraph] = useState<DependencyGraphDto | null>(null)
   const [pkgDiagram, setPkgDiagram] = useState<PackageDiagramDto | null>(null)
+  const [entitiesOnly, setEntitiesOnly] = useState(false)
 
   useEffect(() => {
     if (!projectId || !recordId) return
@@ -227,7 +230,7 @@ export default function DiagramEditor() {
     if (tab === 'class' && !classDiagram) {
       setLoading(true)
       setError(null)
-      getClassDiagram(pid, recordId)
+      getClassDiagram(pid, recordId, entitiesOnly ? 'entities' : undefined)
         .then(setClassDiagram)
         .catch(e => setError((e as Error).message))
         .finally(() => setLoading(false))
@@ -246,7 +249,12 @@ export default function DiagramEditor() {
         .catch(e => setError((e as Error).message))
         .finally(() => setLoading(false))
     }
-  }, [projectId, recordId, tab, classDiagram, depGraph, pkgDiagram])
+  }, [projectId, recordId, tab, classDiagram, depGraph, pkgDiagram, entitiesOnly])
+
+  // Reset class diagram when the entities filter changes so it re-fetches
+  useEffect(() => {
+    setClassDiagram(null)
+  }, [entitiesOnly])
 
   // Compute layout
   const classNodes = classDiagram ? layoutNodes(classDiagram.nodes) : []
@@ -292,6 +300,21 @@ export default function DiagramEditor() {
               </button>
             ))}
           </div>
+
+          {/* Filtre entités */}
+          {tab === 'class' && (
+            <button
+              onClick={() => setEntitiesOnly(v => !v)}
+              style={{
+                ...tabBtn(entitiesOnly),
+                fontSize: 11,
+                padding: '5px 10px',
+                marginRight: 8,
+              }}
+            >
+              Entités seules
+            </button>
+          )}
 
           {/* Zoom */}
           <button style={toolbarBtn} onClick={() => setZoom(z => Math.max(0.25, z - 0.1))}>
@@ -373,6 +396,11 @@ export default function DiagramEditor() {
             { color: '#A78BFA', label: 'extends' },
             { color: '#60A5FA', label: 'implements' },
             { color: '#6E7A88', label: 'uses' },
+            ...(tab === 'class' ? [
+              { color: '#F59E0B', label: 'many-to-one / one-to-many' },
+              { color: '#EF4444', label: 'many-to-many' },
+              { color: '#10B981', label: 'one-to-one' },
+            ] : []),
           ].map(l => (
             <div key={l.label} style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
               <div style={{ width: 20, height: 1.5, backgroundColor: l.color }} />
