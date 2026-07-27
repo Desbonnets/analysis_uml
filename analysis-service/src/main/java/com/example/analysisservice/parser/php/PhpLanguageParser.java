@@ -40,6 +40,13 @@ public class PhpLanguageParser implements LanguageParser {
             "(?m)^[ \\t]*(?:(public|private|protected)\\s+)?(?:(static)\\s+)?(?:\\??[\\w\\\\]+\\s+)?(\\$\\w+)\\s*(?:=|;)"
     );
 
+    // PHP 8 / PHPDoc: marks the class as a Doctrine entity
+    //   #[ORM\Entity] or #[ORM\Entity(repositoryClass: ...)] or @ORM\Entity
+    private static final Pattern ORM_ENTITY_RE = Pattern.compile(
+            "#\\[ORM\\\\Entity(?:\\([^)]*\\))?\\]|@ORM\\\\Entity(?:\\([^)]*\\))?",
+            Pattern.CASE_INSENSITIVE
+    );
+
     // PHP 8 attribute with explicit targetEntity:
     //   #[ORM\ManyToOne(targetEntity: Category::class, ...)]
     private static final Pattern ORM_ATTR_TARGET_RE = Pattern.compile(
@@ -127,6 +134,14 @@ public class PhpLanguageParser implements LanguageParser {
             List<FieldDef> fields = extractProperties(body);
             List<OrmRelation> ormRelations = extractOrmRelations(body);
 
+            // Look at text between the previous class closing brace and this class declaration
+            // to detect #[ORM\Entity] / @ORM\Entity annotations.
+            int lastBrace = source.lastIndexOf('}', m.start() - 1);
+            String preClass = lastBrace >= 0
+                    ? source.substring(lastBrace + 1, m.start())
+                    : source.substring(0, m.start());
+            boolean isDoctrineEntity = ORM_ENTITY_RE.matcher(preClass).find();
+
             out.add(ClassDef.builder()
                     .name(name)
                     .qualifiedName(qualify(namespace, name))
@@ -138,6 +153,7 @@ public class PhpLanguageParser implements LanguageParser {
                     .fields(fields)
                     .dependencies(buildDeps(name, fields, methods))
                     .ormRelations(ormRelations)
+                    .doctrineEntity(isDoctrineEntity)
                     .build());
         }
     }

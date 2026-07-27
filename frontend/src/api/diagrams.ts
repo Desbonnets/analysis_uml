@@ -1,8 +1,10 @@
 import { apiRequest } from './_request'
 import type { ClassDiagramDto, DependencyGraphDto, MetricsDto, PackageDiagramDto } from '../types'
 
-export function getClassDiagram(projectId: number, recordId: string): Promise<ClassDiagramDto> {
-  return apiRequest<ClassDiagramDto>(`/diagrams/${projectId}/class?recordId=${recordId}`)
+export function getClassDiagram(projectId: number, recordId: string, filter?: string): Promise<ClassDiagramDto> {
+  const params = new URLSearchParams({ recordId })
+  if (filter) params.set('filter', filter)
+  return apiRequest<ClassDiagramDto>(`/diagrams/${projectId}/class?${params}`)
 }
 
 export function getDependencyGraph(projectId: number, recordId: string): Promise<DependencyGraphDto> {
