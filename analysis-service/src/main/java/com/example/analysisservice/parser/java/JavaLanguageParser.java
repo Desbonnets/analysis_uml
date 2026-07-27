@@ -117,7 +117,7 @@ public class JavaLanguageParser implements LanguageParser {
 
             return buildFromClassBody(
                     ctx.IDENTIFIER().getText(), type, extractVisibility(mods),
-                    superClass, ifaces, ctx.classBody().classBodyDeclaration());
+                    superClass, ifaces, ctx.classBody().classBodyDeclaration(), hasEntityAnnotation(mods));
         }
 
         // ---- Enum ----
@@ -128,7 +128,7 @@ public class JavaLanguageParser implements LanguageParser {
             // body members after the optional ';' inside the enum
             return buildFromClassBody(
                     ctx.IDENTIFIER().getText(), ClassType.ENUM, extractVisibility(ctx.modifier()),
-                    null, ifaces, ctx.classBodyDeclaration());
+                    null, ifaces, ctx.classBodyDeclaration(), false);
         }
 
         // ---- Interface ----
@@ -154,7 +154,7 @@ public class JavaLanguageParser implements LanguageParser {
 
             return assembleClassDef(
                     ctx.IDENTIFIER().getText(), ClassType.INTERFACE, extractVisibility(ctx.modifier()),
-                    null, extended, methods, fields);
+                    null, extended, methods, fields, false);
         }
 
         // ---- Record ----
@@ -164,7 +164,7 @@ public class JavaLanguageParser implements LanguageParser {
             List<String> ifaces = ctx.typeList() != null ? extractTypeList(ctx.typeList()) : List.of();
             return buildFromClassBody(
                     ctx.IDENTIFIER().getText(), ClassType.RECORD, extractVisibility(ctx.modifier()),
-                    null, ifaces, ctx.classBodyDeclaration());
+                    null, ifaces, ctx.classBodyDeclaration(), false);
         }
 
         // ---- Annotation type ----
@@ -173,7 +173,7 @@ public class JavaLanguageParser implements LanguageParser {
         public ClassDef visitAnnotationTypeDeclaration(JavaStructureParser.AnnotationTypeDeclarationContext ctx) {
             return assembleClassDef(
                     ctx.IDENTIFIER().getText(), ClassType.ANNOTATION, extractVisibility(ctx.modifier()),
-                    null, List.of(), List.of(), List.of());
+                    null, List.of(), List.of(), List.of(), false);
         }
 
         // ---- Builders ----
@@ -182,7 +182,7 @@ public class JavaLanguageParser implements LanguageParser {
         private ClassDef buildFromClassBody(
                 String name, ClassType type, String visibility,
                 String superClass, List<String> ifaces,
-                List<JavaStructureParser.ClassBodyDeclarationContext> bodyDecls) {
+                List<JavaStructureParser.ClassBodyDeclarationContext> bodyDecls, boolean entity) {
 
             List<MethodDef> methods = new ArrayList<>();
             List<FieldDef>  fields  = new ArrayList<>();
@@ -199,13 +199,13 @@ public class JavaLanguageParser implements LanguageParser {
                 }
             }
 
-            return assembleClassDef(name, type, visibility, superClass, ifaces, methods, fields);
+            return assembleClassDef(name, type, visibility, superClass, ifaces, methods, fields, entity);
         }
 
         private ClassDef assembleClassDef(
                 String name, ClassType type, String visibility,
                 String superClass, List<String> ifaces,
-                List<MethodDef> methods, List<FieldDef> fields) {
+                List<MethodDef> methods, List<FieldDef> fields, boolean entity) {
 
             return ClassDef.builder()
                     .name(name)
@@ -216,7 +216,19 @@ public class JavaLanguageParser implements LanguageParser {
                     .methods(methods)
                     .fields(fields)
                     .dependencies(extractDependencies(name, fields, methods))
+                    .entity(entity)
                     .build();
+        }
+
+        // JPA: @Entity / @jakarta.persistence.Entity / @javax.persistence.Entity
+        private boolean hasEntityAnnotation(List<JavaStructureParser.ModifierContext> mods) {
+            for (var m : mods) {
+                if (m.annotation() != null) {
+                    String qn = m.annotation().qualifiedName().getText();
+                    if (qn.equals("Entity") || qn.endsWith(".Entity")) return true;
+                }
+            }
+            return false;
         }
 
         // ---- Method builders ----

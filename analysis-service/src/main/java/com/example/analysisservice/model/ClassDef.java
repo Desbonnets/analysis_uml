@@ -18,5 +18,5 @@ public class ClassDef {
     @Builder.Default private List<FieldDef> fields = new java.util.ArrayList<>();
     @Builder.Default private List<String> dependencies = new java.util.ArrayList<>();
     @Builder.Default private List<OrmRelation> ormRelations = new java.util.ArrayList<>();
-    @Builder.Default private boolean doctrineEntity = false;
+    @Builder.Default private boolean entity = false;
 }

@@ -1,9 +1,17 @@
 import { apiRequest } from './_request'
 import type { ClassDiagramDto, DependencyGraphDto, MetricsDto, PackageDiagramDto } from '../types'
 
-export function getClassDiagram(projectId: number, recordId: string, filter?: string): Promise<ClassDiagramDto> {
+export interface ClassDiagramFilters {
+  filter?: string
+  types?: string[]
+  packageContains?: string
+}
+
+export function getClassDiagram(projectId: number, recordId: string, filters?: ClassDiagramFilters): Promise<ClassDiagramDto> {
   const params = new URLSearchParams({ recordId })
-  if (filter) params.set('filter', filter)
+  if (filters?.filter) params.set('filter', filters.filter)
+  if (filters?.types && filters.types.length > 0) params.set('types', filters.types.join(','))
+  if (filters?.packageContains) params.set('packageContains', filters.packageContains)
   return apiRequest<ClassDiagramDto>(`/diagrams/${projectId}/class?${params}`)
 }
 

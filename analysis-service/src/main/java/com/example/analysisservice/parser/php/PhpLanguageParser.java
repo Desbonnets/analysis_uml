@@ -153,7 +153,7 @@ public class PhpLanguageParser implements LanguageParser {
                     .fields(fields)
                     .dependencies(buildDeps(name, fields, methods))
                     .ormRelations(ormRelations)
-                    .doctrineEntity(isDoctrineEntity)
+                    .entity(isDoctrineEntity)
                     .build());
         }
     }

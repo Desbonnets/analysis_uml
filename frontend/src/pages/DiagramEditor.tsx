@@ -221,6 +221,9 @@ export default function DiagramEditor() {
   const [depGraph, setDepGraph] = useState<DependencyGraphDto | null>(null)
   const [pkgDiagram, setPkgDiagram] = useState<PackageDiagramDto | null>(null)
   const [entitiesOnly, setEntitiesOnly] = useState(false)
+  const [typeFilter, setTypeFilter] = useState<Set<string>>(new Set())
+  const [packageFilterInput, setPackageFilterInput] = useState('')
+  const [packageFilter, setPackageFilter] = useState('')
 
   useEffect(() => {
     if (!projectId || !recordId) return
@@ -230,7 +233,11 @@ export default function DiagramEditor() {
     if (tab === 'class' && !classDiagram) {
       setLoading(true)
       setError(null)
-      getClassDiagram(pid, recordId, entitiesOnly ? 'entities' : undefined)
+      getClassDiagram(pid, recordId, {
+        filter: entitiesOnly ? 'entities' : undefined,
+        types: typeFilter.size > 0 ? Array.from(typeFilter) : undefined,
+        packageContains: packageFilter || undefined,
+      })
         .then(setClassDiagram)
         .catch(e => setError((e as Error).message))
         .finally(() => setLoading(false))
@@ -249,12 +256,21 @@ export default function DiagramEditor() {
         .catch(e => setError((e as Error).message))
         .finally(() => setLoading(false))
     }
-  }, [projectId, recordId, tab, classDiagram, depGraph, pkgDiagram, entitiesOnly])
+  }, [projectId, recordId, tab, classDiagram, depGraph, pkgDiagram, entitiesOnly, typeFilter, packageFilter])
 
-  // Reset class diagram when the entities filter changes so it re-fetches
+  // Reset class diagram when a filter changes so it re-fetches
   useEffect(() => {
     setClassDiagram(null)
-  }, [entitiesOnly])
+  }, [entitiesOnly, typeFilter, packageFilter])
+
+  function toggleType(t: string) {
+    setTypeFilter(prev => {
+      const next = new Set(prev)
+      if (next.has(t)) next.delete(t)
+      else next.add(t)
+      return next
+    })
+  }
 
   // Compute layout
   const classNodes = classDiagram ? layoutNodes(classDiagram.nodes) : []
@@ -301,19 +317,48 @@ export default function DiagramEditor() {
             ))}
           </div>
 
-          {/* Filtre entités */}
+          {/* Filtres (onglet Classe UML uniquement) */}
           {tab === 'class' && (
-            <button
-              onClick={() => setEntitiesOnly(v => !v)}
-              style={{
-                ...tabBtn(entitiesOnly),
-                fontSize: 11,
-                padding: '5px 10px',
-                marginRight: 8,
-              }}
-            >
-              Entités seules
-            </button>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginRight: 8 }}>
+              <button
+                onClick={() => setEntitiesOnly(v => !v)}
+                style={{ ...tabBtn(entitiesOnly), fontSize: 11, padding: '5px 10px' }}
+              >
+                Entités seules
+              </button>
+
+              {([
+                ['class', 'Classes'],
+                ['abstract_class', 'Abstraites'],
+                ['interface', 'Interfaces'],
+                ['enum', 'Enums'],
+              ] as const).map(([value, label]) => (
+                <button
+                  key={value}
+                  onClick={() => toggleType(value)}
+                  style={{ ...tabBtn(typeFilter.has(value)), fontSize: 11, padding: '5px 10px' }}
+                >
+                  {label}
+                </button>
+              ))}
+
+              <input
+                value={packageFilterInput}
+                onChange={e => setPackageFilterInput(e.target.value)}
+                onKeyDown={e => { if (e.key === 'Enter') setPackageFilter(packageFilterInput.trim()) }}
+                onBlur={() => setPackageFilter(packageFilterInput.trim())}
+                placeholder="Filtrer par package…"
+                style={{
+                  fontSize: 11,
+                  padding: '5px 10px',
+                  borderRadius: 6,
+                  border: '1px solid var(--line-2)',
+                  background: 'var(--bg-2)',
+                  color: 'var(--fg-1)',
+                  width: 140,
+                }}
+              />
+            </div>
           )}
 
           {/* Zoom */}
