@@ -44,8 +44,8 @@ public class ZipExtractorService {
         try (ZipInputStream zis = new ZipInputStream(new ByteArrayInputStream(zipBytes))) {
             ZipEntry entry;
             while ((entry = zis.getNextEntry()) != null) {
-                String name = entry.getName();
-                if (!entry.isDirectory() && isSupported(name, includes, excludes)) {
+                String name = normalizePath(entry.getName());
+                if (!isDirectoryEntry(entry, name) && isSupported(name, includes, excludes)) {
                     byte[] content = readSafely(zis, name);
                     if (content != null) {
                         result.put(name, content);
@@ -63,9 +63,9 @@ public class ZipExtractorService {
         try (ZipInputStream zis = new ZipInputStream(new ByteArrayInputStream(zipBytes))) {
             ZipEntry entry;
             while ((entry = zis.getNextEntry()) != null) {
-                String name = entry.getName();
+                String name = normalizePath(entry.getName());
                 String basename = name.contains("/") ? name.substring(name.lastIndexOf('/') + 1) : name;
-                if (!entry.isDirectory() && CONFIG_FILENAMES.contains(basename)) {
+                if (!isDirectoryEntry(entry, name) && CONFIG_FILENAMES.contains(basename)) {
                     byte[] raw = readSafely(zis, name);
                     if (raw != null) {
                         return parseConfig(basename, raw);
@@ -88,6 +88,19 @@ public class ZipExtractorService {
             log.warn("Could not parse {}: {}", filename, e.getMessage());
             return new AnalysisConfig();
         }
+    }
+
+    // Windows tools (Explorer "Compress to Zip file", Compress-Archive) write entry names with
+    // '\' separators instead of the '/' mandated by the ZIP spec, which breaks every path check
+    // below (config lookup, built-in exclusions, user include/exclude patterns).
+    private String normalizePath(String name) {
+        return name.replace('\\', '/');
+    }
+
+    // ZipEntry.isDirectory() only checks for a trailing '/' on the raw (un-normalized) name, so
+    // it misses directory markers stored with a trailing '\'. Check against the normalized name.
+    private boolean isDirectoryEntry(ZipEntry entry, String normalizedName) {
+        return entry.isDirectory() || normalizedName.endsWith("/");
     }
 
     private byte[] readSafely(ZipInputStream zis, String name) throws IOException {
