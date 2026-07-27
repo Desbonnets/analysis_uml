@@ -16,6 +16,7 @@ import org.springframework.web.server.ResponseStatusException;
 
 import java.time.LocalDateTime;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
@@ -28,20 +29,25 @@ public class ClassDiagramService {
     private final AnalysisClient analysisClient;
 
     public ClassDiagramDto generate(Long projectId, String recordId, String filter, String authHeader) {
+        return generate(projectId, recordId, filter, null, null, authHeader);
+    }
+
+    public ClassDiagramDto generate(Long projectId, String recordId, String filter,
+                                     String types, String packageContains, String authHeader) {
         if (recordId == null) {
             recordId = resolveLatestRecordId(projectId, authHeader);
         }
 
         AnalysisRecord record = analysisClient.getRecord(projectId, recordId, authHeader);
         boolean entitiesOnly = "entities".equalsIgnoreCase(filter);
+        Set<String> typeFilter = parseTypes(types);
+        String pkgFilter = (packageContains != null && !packageContains.isBlank()) ? packageContains.trim() : null;
 
         Set<String> internalClasses = new HashSet<>();
         for (CodeUnit cu : record.getCodeUnits()) {
             for (ClassDef c : cu.getClasses()) {
-                if (c.getQualifiedName() != null) {
-                    if (!entitiesOnly || c.isDoctrineEntity()) {
-                        internalClasses.add(c.getQualifiedName());
-                    }
+                if (c.getQualifiedName() != null && matchesFilters(c, cu.getPackageName(), entitiesOnly, typeFilter, pkgFilter)) {
+                    internalClasses.add(c.getQualifiedName());
                 }
             }
         }
@@ -51,7 +57,7 @@ public class ClassDiagramService {
 
         for (CodeUnit cu : record.getCodeUnits()) {
             for (ClassDef c : cu.getClasses()) {
-                if (entitiesOnly && !c.isDoctrineEntity()) continue;
+                if (!matchesFilters(c, cu.getPackageName(), entitiesOnly, typeFilter, pkgFilter)) continue;
                 nodes.add(buildNode(c, cu.getPackageName()));
 
                 if (c.getSuperClass() != null && !c.getSuperClass().isBlank()) {
@@ -134,6 +140,28 @@ public class ClassDiagramService {
                     "No analysis found for project " + projectId);
         }
         return history.get(0).getRecordId();
+    }
+
+    private boolean matchesFilters(ClassDef c, String packageName, boolean entitiesOnly,
+                                    Set<String> typeFilter, String pkgFilter) {
+        if (entitiesOnly && !c.isEntity()) return false;
+        if (!typeFilter.isEmpty() && (c.getType() == null || !typeFilter.contains(c.getType().toLowerCase()))) {
+            return false;
+        }
+        if (pkgFilter != null) {
+            String pkg = packageName != null ? packageName : extractPackage(c.getQualifiedName());
+            if (pkg == null || !pkg.toLowerCase().contains(pkgFilter.toLowerCase())) return false;
+        }
+        return true;
+    }
+
+    private Set<String> parseTypes(String types) {
+        if (types == null || types.isBlank()) return Set.of();
+        return Arrays.stream(types.split(","))
+                .map(String::trim)
+                .map(String::toLowerCase)
+                .filter(s -> !s.isEmpty())
+                .collect(Collectors.toSet());
     }
 
     private String formatVisibility(String visibility) {

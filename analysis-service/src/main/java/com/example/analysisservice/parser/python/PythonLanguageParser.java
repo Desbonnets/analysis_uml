@@ -113,6 +113,7 @@ public class PythonLanguageParser implements LanguageParser {
                         .methods(methods)
                         .fields(fields)
                         .dependencies(buildDeps(className, fields, methods))
+                        .entity(isOrmEntity(bases))
                         .build());
                 continue;
             }
@@ -228,6 +229,17 @@ public class PythonLanguageParser implements LanguageParser {
             types.add(parts.length >= 2 ? parts[1].trim() : "Any");
         }
         return types;
+    }
+
+    // Django (models.Model / db.Model) and SQLAlchemy (Base / DeclarativeBase) conventions
+    private static final Set<String> ORM_BASE_NAMES = Set.of("Model", "Base", "DeclarativeBase");
+
+    private boolean isOrmEntity(List<String> bases) {
+        for (String base : bases) {
+            String simple = base.contains(".") ? base.substring(base.lastIndexOf('.') + 1) : base;
+            if (ORM_BASE_NAMES.contains(simple)) return true;
+        }
+        return false;
     }
 
     private List<String> parseList(String csv) {

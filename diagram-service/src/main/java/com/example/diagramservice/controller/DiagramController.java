@@ -32,8 +32,10 @@ public class DiagramController {
             @PathVariable Long projectId,
             @RequestParam(required = false) String recordId,
             @RequestParam(required = false) String filter,
+            @RequestParam(required = false) String types,
+            @RequestParam(required = false) String packageContains,
             @RequestHeader("Authorization") String authHeader) {
-        return ResponseEntity.ok(classDiagramService.generate(projectId, recordId, filter, authHeader));
+        return ResponseEntity.ok(classDiagramService.generate(projectId, recordId, filter, types, packageContains, authHeader));
     }
 
     @GetMapping("/{projectId}/dependencies")
