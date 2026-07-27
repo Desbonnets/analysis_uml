@@ -49,48 +49,11 @@ docker-compose up -d postgres minio eureka-server      # Start infra only
 
 ### Service map
 
-```
-Browser → frontend:3000 (Nginx in Docker)
-         → gateway:8080 (Spring Cloud Gateway, reactive)
-              → auth-service:8081     (Spring Security + JPA, auth_db)
-              → user-service:8082     (JPA, user_db)  ← skeleton, not yet implemented
-              → project-service:8083  (JPA, projet_db — project CRUD + violations)
-              → analysis-service:8084 (stateless — ZIP upload → MinIO, stocke JSON historique)
-              → diagram-service:8085  (stateless — lit l'historique analysis-service via Eureka)
-              ↕ Eureka discovery:8761
+All services register with Eureka. The gateway routes by service name, not hardcoded URLs (see `gateway/src/main/resources/application.properties` for the prefix→service mappings, and each service's `application.properties` for ports).
 
-MinIO:9000  (S3-compatible object storage — analysis-uploads bucket)
-MinIO:9001  (web console — minioadmin / minioadmin in dev)
-```
+### auth-service
 
-All services register with Eureka. The gateway routes by service name, not hardcoded URLs.
-
-### Gateway routes (application.properties)
-
-| Prefix | Target service |
-|--------|---------------|
-| `/auth/**` | auth-service |
-| `/users/**` | auth-service |
-| `/roles/**` | auth-service |
-| `/projects/**` | project-service |
-| `/analysis/**` | analysis-service |
-| `/diagrams/**` | diagram-service |
-
-### auth-service internal layout
-
-```
-entity/     AppUser (app_users table), Role (roles table, role_permissions table)
-repository/ UserRepository, RoleRepository
-dto/        AuthResponse, LoginRequest, RegisterRequest
-            UserAdminDto, RoleDto (admin API responses)
-            AdminCreateUserRequest, AdminUpdateUserRequest
-            UpdateProfileRequest (own profile)
-service/    AuthService (login/register), UserManagementService (CRUD + profile),
-            RoleService (list roles)
-controller/ AuthController (/auth/**), UserController (/users/**), RoleController (/roles/**)
-security/   JwtUtil, JwtAuthFilter, CustomUserDetailsService
-config/     SecurityConfig, DevDataSeeder, ProdDataSeeder
-```
+See `auth-service/CLAUDE.md` for internal layout and test setup.
 
 **Security rules in SecurityConfig:**
 - `/auth/register`, `/auth/login`, `/actuator/health` → public
@@ -128,132 +91,21 @@ Activate Docker profile: `SPRING_PROFILES_ACTIVE=docker`
 
 In Docker, `ProdDataSeeder` seeds a single admin user configurable via env vars `SEED_ADMIN_NAME`, `SEED_ADMIN_EMAIL`, `SEED_ADMIN_PASSWORD`.
 
-### Frontend data flow
+### Frontend
 
-**Wired to real API (gateway on port 8080):**
-- `src/api/auth.ts` — login, register → `/auth/**`
-- `src/api/profile.ts` — `getMe`, `updateMe` → `/auth/me`
-- `src/api/users.ts` — admin CRUD → `/users/**`
-- `src/api/roles.ts` — list roles → `/roles/**`
-- `src/api/analysis.ts` — `uploadAndAnalyze`, `getAnalysisHistory` → `/analysis/**`
-- `src/api/diagrams.ts` — `getClassDiagram`, `getDependencyGraph`, `getPackageDiagram`, `getMetrics` → `/diagrams/**`
-- Auth state persisted in `localStorage` via `AuthContext` (keys: `auth_token`, `auth_user`)
-
-**Still mocked via JSON files in `src/data/`:**
-- `projects.json`, `violations.json`, `ai-messages.json`
-- `diagrams.json` — conservé mais plus utilisé (DiagramsList et DiagramEditor utilisent maintenant l'API réelle)
-
-**Type source of truth:** `src/types/index.ts`
-- `AuthUser` — shape stored in localStorage and returned by `/auth/**` (role as `RoleName` string)
-- `UserAdmin` — shape returned by `/users/**` (role as full `RoleInfo` object)
-- `RoleInfo` — full role object with permissions array
-
-### Frontend routing
-
-```
-/login, /register                              → public
-/dashboard, /projects, /diagrams, /analysis, /ai, /settings  → ProtectedRoute (token required)
-/diagrams                                      → DiagramsList (sélecteur projet + historique analyses)
-/diagrams/:projectId/:recordId                 → DiagramEditor (3 onglets: Classe/Dépendances/Packages)
-/admin/users                                   → AdminRoute (role === 'admin', redirects to /dashboard otherwise)
-```
-
-`AdminRoute` in `src/components/auth/AdminRoute.tsx`. Sidebar shows the **Administration** section only when `user.role === 'admin'`.
-
-**Flux Diagrammes UML :**
-1. `DiagramsList` → sélectionne un projet → appelle `GET /analysis/{projectId}/history`
-2. Clic sur une ligne → navigue vers `/diagrams/{projectId}/{recordId}`
-3. `DiagramEditor` → appelle diagram-service à la volée → affiche SVG avec 3 onglets
-
-### Frontend component layers
-
-- `src/components/layout/` — `Layout` (shell), `Sidebar` (nav + admin section), `Header` (topbar)
-- `src/components/auth/` — `ProtectedRoute`, `AdminRoute`
-- `src/components/ui/` — `Button`, `Pill`, `Badge`, `Avatar`, `MetricCard`, `StatCard`, `Logo`
-- `src/pages/` — one file per route
-- `src/pages/admin/` — admin-only pages (`Users.tsx` — full CRUD table)
+See `frontend/CLAUDE.md` for data flow (wired vs mocked APIs), routing, and component layers.
 
 ### analysis-service (port 8084)
 
-Stateless service — no database. Receives ZIP uploads, stores them in MinIO, will orchestrate code analysis (JavaParser) in a future iteration.
-
-```
-controller/ AnalysisController  (POST /analysis/{projectId} — multipart, JWT required)
-service/    AnalysisService     (validates file: ZIP only, max 50 MB)
-            StorageService      (uploads to MinIO, auto-creates bucket on startup)
-config/     MinioConfig         (MinioClient bean, configured via env vars)
-            SecurityConfig
-security/   JwtUtil, JwtAuthFilter, JwtUserDetailsService (stateless — same pattern as project-service)
-```
-
-**MinIO configuration (env vars):**
-```
-MINIO_ENDPOINT   — http://localhost:9000 (dev) | https://s3.gra.cloud.ovh.net (OVH prod)
-MINIO_ACCESS_KEY
-MINIO_SECRET_KEY
-MINIO_BUCKET     — analysis-uploads (default)
-```
-
-**Storage key format:** `projects/{projectId}/{timestamp}-source.zip`
-
-ZIP files are kept after analysis to allow re-runs without re-upload.
-
-**Dockerfile** uses the Maven base image (`maven:3.9-eclipse-temurin-21-alpine`) — no mvnw needed for Docker builds.
+See `analysis-service/CLAUDE.md` for internal layout, MinIO config, and storage key format.
 
 ### diagram-service (port 8085)
 
-Stateless service — no database. Reads analysis history from analysis-service via Eureka (RestTemplate @LoadBalanced), transforms CodeUnit/ClassDef data into diagram formats, and returns them to the frontend on demand.
-
-```
-controller/ DiagramController  (GET /diagrams/{projectId}/{class|dependencies|packages|metrics})
-service/    ClassDiagramService     (superClass→EXTENDS, interfaces→IMPLEMENTS, deps→USES interne)
-            DependencyGraphService  (tous les deps sans filtre)
-            PackageDiagramService   (grouper par packageName, arêtes inter-packages)
-            MetricsService          (agrège AnalysisHistoryEntry — pas de fetch N+1)
-client/     AnalysisClient          (forwarde le JWT de l'utilisateur vers analysis-service)
-model/      miroir des modèles analysis-service pour désérialisation JSON
-dto/        ClassDiagramDto, DependencyGraphDto, PackageDiagramDto, MetricsDto
-config/     SecurityConfig, RestClientConfig (@LoadBalanced RestTemplate)
-security/   JwtUtil, JwtAuthFilter, JwtUserDetailsService (même pattern)
-```
-
-**Endpoints:**
-```
-GET /diagrams/{projectId}/class?recordId={id}        → ClassDiagramDto (nodes + edges)
-GET /diagrams/{projectId}/dependencies?recordId={id} → DependencyGraphDto
-GET /diagrams/{projectId}/packages?recordId={id}     → PackageDiagramDto
-GET /diagrams/{projectId}/metrics                    → MetricsDto (évolution temporelle)
-```
-
-- `recordId` absent → utilise l'analyse la plus récente (1er de l'historique)
-- Tous les endpoints requirent authentification JWT
-- Le JWT de l'utilisateur est forwardé dans les appels vers analysis-service
-
-**Dockerfile** uses the Maven base image (`maven:3.9-eclipse-temurin-21-alpine`) — no mvnw needed for Docker builds.
-
-**No mvnw**: copy from project-service before running locally:
-`cp project-service/mvnw diagram-service/ && cp -r project-service/.mvn diagram-service/`
+See `diagram-service/CLAUDE.md` for internal layout, endpoints, and mvnw setup.
 
 ### project-service (formerly service-metier-1)
 
-Manages projects (CRUD) at `/projects/**`. JWT validation uses the same secret as auth-service. `DevDataSeeder` seeds 8 sample projects on first start (idempotent — skips if table is non-empty).
-
-```
-entity/     Project (projects table — includes repositoryUrl, apiToken)
-repository/ ProjectRepository
-dto/        ProjectDto, CreateProjectRequest, UpdateProjectRequest
-            GenerateTokenResponse, SubmitAnalysisRequest
-service/    ProjectService (CRUD, owner-only update/delete, token generation, analysis report)
-controller/ ProjectController (/projects/**)
-security/   JwtUtil, JwtAuthFilter, JwtUserDetailsService (stateless — no user DB)
-config/     SecurityConfig, DevDataSeeder
-```
-
-Authorization: all authenticated users can list/read all projects; update/delete restricted to the project owner (`ownerEmail` == JWT subject).
-
-**CI integration endpoints:**
-- `POST /projects/{id}/token` — generate/regenerate API token (JWT auth, owner only)
-- `POST /projects/{id}/report` — receive CI analysis report (no JWT, `X-Project-Token` header)
+See `project-service/CLAUDE.md` for internal layout, authorization rule, and CI integration endpoints.
 
 ### user-service
 
@@ -272,15 +124,7 @@ Currently an empty Spring Boot skeleton. Planned for user preferences tied to ap
 - **Password constraint** (register + admin create): min 12 chars, requires uppercase + lowercase + digit + special char. Regex: `^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[^a-zA-Z0-9]).{12,}$`
 - **Email change logs out the user**: JWT contains the old email. After changing email via `PUT /auth/me`, the current token becomes invalid on the next authenticated request. The user must log in again.
 
-## Frontend design conventions
-
-The UI uses a CSS custom property design system defined in `src/index.css`:
-
-- **Colors**: use `var(--bg-0..4)`, `var(--fg-0..3)`, `var(--accent)` (#5BC0BE teal), `var(--ok/warn/bad/info)`. No hardcoded hex values or Tailwind color utilities.
-- **CSS classes**: prefer design system classes (`.btn`, `.card`, `.pill`, `.sidebar`, `.topbar`, `.table`) over inline styles for structural elements.
-- **Fonts**: `var(--font-sans)` (Inter) for UI, `var(--font-mono)` (JetBrains Mono) for code, metrics, numeric values.
-- **No emojis** in the product UI.
-- **Pill vs Badge**: use `<Pill tone="ok|warn|bad|info|neutral">` directly in new code. `<Badge>` is a legacy wrapper.
+Frontend design conventions (CSS custom property system, colors, fonts, Pill vs Badge) are in `frontend/CLAUDE.md`.
 
 ## Git workflow
 
@@ -308,13 +152,9 @@ npm test                   # Vitest — component unit tests in src/**/*.test.ts
 # Backend (from each service directory)
 ./mvnw test
 ./mvnw test -Dtest=MyServiceTest
-
-# auth-service test setup: H2 in-memory (create-drop), Eureka disabled
-# DevDataSeeder runs in tests (profile !docker) — seeds roles + 3 users
-# Integration tests obtain a real JWT by logging in as admin@dev.local
 ```
 
-When adding a feature, write or update tests in the same PR. The auth-service has both unit tests (`AuthServiceTest` with Mockito) and integration tests (`AuthControllerIntegrationTest`, `UserControllerIntegrationTest` with MockMvc + H2).
+When adding a feature, write or update tests in the same PR. See `auth-service/CLAUDE.md` for its test setup (H2, seeded users, JWT-based integration tests).
 
 ## Unused code policy
 
