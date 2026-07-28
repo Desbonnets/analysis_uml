@@ -277,6 +277,24 @@ export interface PackageDiagramDto {
   edges: DiagramEdge[]
 }
 
+export interface ConformanceViolation {
+  severity: string
+  type: string
+  className: string
+  relatedClassName: string
+  message: string
+}
+
+export interface ConformanceReportDto {
+  projectId: number
+  recordId: string
+  expectedClassCount: number
+  actualClassCount: number
+  errorCount: number
+  infoCount: number
+  violations: ConformanceViolation[]
+}
+
 export interface MetricPoint {
   recordId: string
   analyzedAt: string
