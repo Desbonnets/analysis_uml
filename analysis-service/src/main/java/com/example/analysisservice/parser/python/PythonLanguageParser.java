@@ -106,7 +106,7 @@ public class PythonLanguageParser implements LanguageParser {
                 classes.add(ClassDef.builder()
                         .name(className)
                         .qualifiedName(className)
-                        .type(ClassType.CLASS)
+                        .type(isEnumClass(bases) ? ClassType.ENUM : ClassType.CLASS)
                         .visibility("public")
                         .superClass(superClass)
                         .interfaces(ifaces)
@@ -238,6 +238,17 @@ public class PythonLanguageParser implements LanguageParser {
         for (String base : bases) {
             String simple = base.contains(".") ? base.substring(base.lastIndexOf('.') + 1) : base;
             if (ORM_BASE_NAMES.contains(simple)) return true;
+        }
+        return false;
+    }
+
+    // stdlib enum module: Enum, IntEnum, StrEnum (3.11+), Flag, IntFlag
+    private static final Set<String> ENUM_BASE_NAMES = Set.of("Enum", "IntEnum", "StrEnum", "Flag", "IntFlag");
+
+    private boolean isEnumClass(List<String> bases) {
+        for (String base : bases) {
+            String simple = base.contains(".") ? base.substring(base.lastIndexOf('.') + 1) : base;
+            if (ENUM_BASE_NAMES.contains(simple)) return true;
         }
         return false;
     }

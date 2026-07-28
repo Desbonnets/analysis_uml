@@ -1,10 +1,13 @@
 package com.example.diagramservice.controller;
 
 import com.example.diagramservice.dto.ClassDiagramDto;
+import com.example.diagramservice.dto.ConformanceReportDto;
+import com.example.diagramservice.dto.ConformanceRequest;
 import com.example.diagramservice.dto.DependencyGraphDto;
 import com.example.diagramservice.dto.MetricsDto;
 import com.example.diagramservice.dto.PackageDiagramDto;
 import com.example.diagramservice.service.ClassDiagramService;
+import com.example.diagramservice.service.ConformanceService;
 import com.example.diagramservice.service.DependencyGraphService;
 import com.example.diagramservice.service.MetricsService;
 import com.example.diagramservice.service.PackageDiagramService;
@@ -12,6 +15,8 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
+import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestHeader;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
@@ -26,6 +31,7 @@ public class DiagramController {
     private final DependencyGraphService dependencyGraphService;
     private final PackageDiagramService packageDiagramService;
     private final MetricsService metricsService;
+    private final ConformanceService conformanceService;
 
     @GetMapping("/{projectId}/class")
     public ResponseEntity<ClassDiagramDto> getClassDiagram(
@@ -59,5 +65,14 @@ public class DiagramController {
             @PathVariable Long projectId,
             @RequestHeader("Authorization") String authHeader) {
         return ResponseEntity.ok(metricsService.getMetrics(projectId, authHeader));
+    }
+
+    @PostMapping("/{projectId}/conformance")
+    public ResponseEntity<ConformanceReportDto> checkConformance(
+            @PathVariable Long projectId,
+            @RequestParam(required = false) String recordId,
+            @RequestBody ConformanceRequest request,
+            @RequestHeader("Authorization") String authHeader) {
+        return ResponseEntity.ok(conformanceService.generate(projectId, recordId, request.getSource(), authHeader));
     }
 }

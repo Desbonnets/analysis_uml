@@ -1,5 +1,5 @@
 import { apiRequest } from './_request'
-import type { ClassDiagramDto, DependencyGraphDto, MetricsDto, PackageDiagramDto } from '../types'
+import type { ClassDiagramDto, ConformanceReportDto, DependencyGraphDto, MetricsDto, PackageDiagramDto } from '../types'
 
 export interface ClassDiagramFilters {
   filter?: string
@@ -25,4 +25,11 @@ export function getPackageDiagram(projectId: number, recordId: string): Promise<
 
 export function getMetrics(projectId: number): Promise<MetricsDto> {
   return apiRequest<MetricsDto>(`/diagrams/${projectId}/metrics`)
+}
+
+export function checkConformance(projectId: number, recordId: string, source: string): Promise<ConformanceReportDto> {
+  return apiRequest<ConformanceReportDto>(`/diagrams/${projectId}/conformance?recordId=${recordId}`, {
+    method: 'POST',
+    body: JSON.stringify({ source }),
+  })
 }
