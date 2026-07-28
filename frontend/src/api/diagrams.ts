@@ -33,3 +33,10 @@ export function checkConformance(projectId: number, recordId: string, source: st
     body: JSON.stringify({ source }),
   })
 }
+
+export function renderPlantUml(source: string): Promise<{ svg: string | null }> {
+  return apiRequest<{ svg: string | null }>('/diagrams/render-plantuml', {
+    method: 'POST',
+    body: JSON.stringify({ source }),
+  })
+}
