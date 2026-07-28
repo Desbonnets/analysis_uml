@@ -29,9 +29,6 @@ GET /diagrams/{projectId}/metrics                    → MetricsDto (évolution 
 
 **Dockerfile** uses the Maven base image (`maven:3.9-eclipse-temurin-21-alpine`) — no mvnw needed for Docker builds.
 
-**No mvnw**: copy from project-service before running locally:
-`cp project-service/mvnw diagram-service/ && cp -r project-service/.mvn diagram-service/`
-
 ## Class diagram filters
 
 `GET /diagrams/{projectId}/class` accepts three independent, combinable query params (all applied server-side, before the response is serialized — matters for large projects):
