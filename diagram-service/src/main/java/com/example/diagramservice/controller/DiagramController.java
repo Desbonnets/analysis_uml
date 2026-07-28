@@ -6,11 +6,14 @@ import com.example.diagramservice.dto.ConformanceRequest;
 import com.example.diagramservice.dto.DependencyGraphDto;
 import com.example.diagramservice.dto.MetricsDto;
 import com.example.diagramservice.dto.PackageDiagramDto;
+import com.example.diagramservice.dto.ParsePlantUmlRequest;
+import com.example.diagramservice.dto.PlantUmlRenderDto;
 import com.example.diagramservice.service.ClassDiagramService;
 import com.example.diagramservice.service.ConformanceService;
 import com.example.diagramservice.service.DependencyGraphService;
 import com.example.diagramservice.service.MetricsService;
 import com.example.diagramservice.service.PackageDiagramService;
+import com.example.diagramservice.service.PlantUmlRenderService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.GetMapping;
@@ -32,6 +35,7 @@ public class DiagramController {
     private final PackageDiagramService packageDiagramService;
     private final MetricsService metricsService;
     private final ConformanceService conformanceService;
+    private final PlantUmlRenderService plantUmlRenderService;
 
     @GetMapping("/{projectId}/class")
     public ResponseEntity<ClassDiagramDto> getClassDiagram(
@@ -74,5 +78,10 @@ public class DiagramController {
             @RequestBody ConformanceRequest request,
             @RequestHeader("Authorization") String authHeader) {
         return ResponseEntity.ok(conformanceService.generate(projectId, recordId, request.getSource(), authHeader));
+    }
+
+    @PostMapping("/render-plantuml")
+    public ResponseEntity<PlantUmlRenderDto> renderPlantUml(@RequestBody ParsePlantUmlRequest request) {
+        return ResponseEntity.ok(plantUmlRenderService.render(request.getSource()));
     }
 }

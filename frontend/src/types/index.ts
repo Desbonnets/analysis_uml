@@ -307,3 +307,13 @@ export interface MetricsDto {
   projectId: number
   dataPoints: MetricPoint[]
 }
+
+export interface SavedUmlDiagram {
+  id: number
+  name: string
+  projectId: number | null
+  plantUmlSource: string
+  ownerEmail: string
+  createdAt: string
+  updatedAt: string
+}

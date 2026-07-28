@@ -1,5 +1,13 @@
 # Frontend
 
+## User stories
+
+`frontend/USER_STORIES.md` tracks the frontend feature backlog as user stories, grouped by epic, each tagged ✅ (wired to a real API), 🧪 (mocked/static data), or 🚧 (UI present but not wired).
+
+- **The user edits this file by hand from time to time** — before trusting it, verify its claims against the current code (page under `src/pages/`, API call under `src/api/`) rather than assuming it's still accurate.
+- When you add, remove, or materially change a frontend feature (new page, new API wiring, a 🧪/🚧 item becoming ✅, etc.), update `USER_STORIES.md` in the same change — add/edit the relevant story and status tag.
+- Don't rewrite unrelated stories or restructure the epics when doing a small update — edit only what changed.
+
 ## Data flow
 
 **Wired to real API (gateway on port 8080):**
