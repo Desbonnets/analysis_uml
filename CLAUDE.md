@@ -27,13 +27,12 @@ cd auth-service     && ./mvnw spring-boot:run   # port 8081
 cd user-service     && ./mvnw spring-boot:run   # port 8082
 cd project-service  && ./mvnw spring-boot:run   # port 8083
 cd analysis-service && ./mvnw spring-boot:run   # port 8084 (copy mvnw from project-service first)
-cd diagram-service  && ./mvnw spring-boot:run   # port 8085 (copy mvnw from project-service first)
+cd diagram-service  && ./mvnw spring-boot:run   # port 8085
 ```
 
-> **analysis-service** and **diagram-service** have no mvnw committed. Copy before first run:
+> **analysis-service** has no mvnw committed. Copy before first run:
 > ```bash
 > cp project-service/mvnw analysis-service/ && cp -r project-service/.mvn analysis-service/
-> cp project-service/mvnw diagram-service/  && cp -r project-service/.mvn diagram-service/
 > ```
 
 ### Full stack via Docker
@@ -118,7 +117,7 @@ Currently an empty Spring Boot skeleton. Planned for user preferences tied to ap
 - **Spring Initializr dependency IDs**: use `cloud-eureka-server`, `cloud-eureka`, `cloud-gateway` — the older names resolve to wrong/missing artifacts.
 - **Node.js version**: Vite 8 requires Node 20.19+ or 22+. The machine currently has 20.12. `npm run build` will fail until Node is upgraded.
 - **New Spring Boot services**: each service needs its own `application-docker.properties` with datasource URL pointing to the `postgres` container and `eureka.client.service-url.defaultZone=http://eureka-server:8761/eureka/`.
-- **analysis-service and diagram-service have no mvnw**: copy from project-service before running locally. Docker build works without it (uses Maven base image).
+- **analysis-service has no mvnw**: copy from project-service before running locally. Docker build works without it (uses Maven base image).
 - **MinIO bucket**: created automatically by `StorageService@PostConstruct` on startup. If MinIO is unreachable, the service fails to start — start MinIO first.
 - **Role migration**: `AppUser.role` is now a FK (`role_id`). With `ddl-auto=update`, the old `role VARCHAR` column is NOT dropped automatically. On a fresh DB this is fine; on an existing dev DB, drop and recreate `auth_db` before first run.
 - **Password constraint** (register + admin create): min 12 chars, requires uppercase + lowercase + digit + special char. Regex: `^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[^a-zA-Z0-9]).{12,}$`
