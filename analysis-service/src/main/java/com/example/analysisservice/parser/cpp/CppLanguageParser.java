@@ -29,6 +29,10 @@ public class CppLanguageParser implements LanguageParser {
     private static final Pattern VISIBILITY_RE = Pattern.compile(
             "(?m)^[ \\t]*(public|private|protected)\\s*:"
     );
+    // enum Name {  or  enum class/struct Name [: underlying_type] {
+    private static final Pattern ENUM_RE = Pattern.compile(
+            "(?m)^[ \\t]*enum\\s+(?:class\\s+|struct\\s+)?(\\w+)(?:\\s*:\\s*[\\w:]+)?\\s*\\{"
+    );
     // Method: word before ( that isn't a keyword, followed by (params) and ending with { ; or =0
     private static final Pattern METHOD_NAME_RE = Pattern.compile(
             "(?:~?(\\w+))\\s*\\("
@@ -71,12 +75,16 @@ public class CppLanguageParser implements LanguageParser {
         String stripped = source.replaceAll("//[^\n]*", "");
 
         String packageName = extractNamespace(stripped);
+        List<ClassDef> classes = new ArrayList<>();
+        classes.addAll(extractClasses(stripped));
+        classes.addAll(extractEnums(stripped));
+
         return CodeUnit.builder()
                 .fileName(filename)
                 .packageName(packageName)
                 .language(Language.CPP)
                 .imports(extractIncludes(stripped))
-                .classes(extractClasses(stripped))
+                .classes(classes)
                 .build();
     }
 
@@ -121,6 +129,24 @@ public class CppLanguageParser implements LanguageParser {
                     .build());
         }
         return classes;
+    }
+
+    private List<ClassDef> extractEnums(String source) {
+        List<ClassDef> enums = new ArrayList<>();
+        Matcher em = ENUM_RE.matcher(source);
+
+        while (em.find()) {
+            String name = em.group(1);
+            if (CPP_KEYWORDS.contains(name)) continue;
+
+            enums.add(ClassDef.builder()
+                    .name(name)
+                    .qualifiedName(name)
+                    .type(ClassType.ENUM)
+                    .visibility("public")
+                    .build());
+        }
+        return enums;
     }
 
     private List<MethodDef> extractMethods(String body) {

@@ -29,6 +29,10 @@ public class CLanguageParser implements LanguageParser {
     private static final Pattern FIELD_RE = Pattern.compile(
             "(?m)^[ \\t]*(?:(?:const|volatile|unsigned|signed|static)\\s+)*([\\w]+(?:\\s*\\*+)?)\\s+(\\w+)\\s*(?:\\[[^]]*])?\\s*;"
     );
+    // enum Name {  or  typedef enum [Name] {
+    private static final Pattern ENUM_RE = Pattern.compile(
+            "(?m)^[ \\t]*(?:typedef\\s+)?enum\\s*(\\w+)?\\s*\\{"
+    );
 
     private static final Set<String> C_KEYWORDS = Set.of(
             "if", "else", "for", "while", "do", "switch", "case", "return",
@@ -66,11 +70,15 @@ public class CLanguageParser implements LanguageParser {
         // Strip single-line comments to avoid false matches
         String stripped = source.replaceAll("//[^\n]*", "");
 
+        List<ClassDef> classes = new ArrayList<>();
+        classes.addAll(extractStructs(stripped));
+        classes.addAll(extractEnums(stripped));
+
         return CodeUnit.builder()
                 .fileName(filename)
                 .language(Language.C)
                 .imports(extractIncludes(stripped))
-                .classes(extractStructs(stripped))
+                .classes(classes)
                 .build();
     }
 
@@ -117,6 +125,37 @@ public class CLanguageParser implements LanguageParser {
                     .build());
         }
         return structs;
+    }
+
+    private List<ClassDef> extractEnums(String source) {
+        List<ClassDef> enums = new ArrayList<>();
+        Matcher em = ENUM_RE.matcher(source);
+
+        while (em.find()) {
+            String nameBeforeBrace = em.group(1); // may be null for anonymous enums
+            int bodyStart = em.end() - 1;
+            String body = extractBody(source, bodyStart);
+            int afterBrace = bodyStart + 1 + body.length() + 1; // position after '}'
+
+            String name = nameBeforeBrace;
+            if (name == null) {
+                // typedef enum { ... } Alias; — look for the alias token after '}'
+                Matcher aliasMatcher = Pattern.compile("^\\s*(\\w+)\\s*;").matcher(
+                        source.substring(Math.min(afterBrace, source.length()))
+                );
+                if (aliasMatcher.find()) name = aliasMatcher.group(1);
+            }
+
+            if (name == null || name.isBlank() || C_KEYWORDS.contains(name)) continue;
+
+            enums.add(ClassDef.builder()
+                    .name(name)
+                    .qualifiedName(name)
+                    .type(ClassType.ENUM)
+                    .visibility("public")
+                    .build());
+        }
+        return enums;
     }
 
     private List<FieldDef> extractFields(String body) {

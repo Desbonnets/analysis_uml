@@ -32,6 +32,12 @@ public class PhpLanguageParser implements LanguageParser {
     private static final Pattern TRAIT_RE = Pattern.compile(
             "(?m)^[ \\t]*trait\\s+(\\w+)\\s*\\{"
     );
+    // PHP 8.1+ enum, optionally backed (: string / : int) and implementing interfaces
+    private static final Pattern ENUM_RE = Pattern.compile(
+            "(?m)^[ \\t]*enum\\s+(\\w+)(?:\\s*:\\s*\\w+)?" +
+            "(?:\\s+implements\\s+([\\w\\s,\\\\]+?))?" +
+            "\\s*\\{"
+    );
     private static final Pattern METHOD_RE = Pattern.compile(
             "(?m)^[ \\t]*(?:(public|private|protected)\\s+)?(?:(static)\\s+)?(?:(abstract)\\s+)?function\\s+(\\w+)\\s*\\(([^)]*)\\)" +
             "(?:\\s*:\\s*\\??[\\w\\\\]+)?\\s*(?:\\{|;)"
@@ -113,6 +119,7 @@ public class PhpLanguageParser implements LanguageParser {
         extractClasses(source, namespace, classes);
         extractInterfaces(source, namespace, classes);
         extractTraits(source, namespace, classes);
+        extractEnums(source, namespace, classes);
 
         return CodeUnit.builder()
                 .fileName(filename)
@@ -191,6 +198,25 @@ public class PhpLanguageParser implements LanguageParser {
                     .visibility("public")
                     .methods(methods)
                     .fields(fields)
+                    .build());
+        }
+    }
+
+    private void extractEnums(String source, String namespace, List<ClassDef> out) {
+        Matcher m = ENUM_RE.matcher(source);
+        while (m.find()) {
+            String name = m.group(1);
+            List<String> ifaces = parseList(m.group(2));
+            String body = extractBody(source, m.end() - 1);
+            List<MethodDef> methods = extractMethods(body);
+
+            out.add(ClassDef.builder()
+                    .name(name)
+                    .qualifiedName(qualify(namespace, name))
+                    .type(ClassType.ENUM)
+                    .visibility("public")
+                    .interfaces(ifaces)
+                    .methods(methods)
                     .build());
         }
     }
