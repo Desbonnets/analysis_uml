@@ -17,8 +17,13 @@ import java.util.List;
 @Component
 public class PlantUmlExporter {
 
+    // Class diagrams default to Graphviz ("dot") for layout, which most PlantUML consumers
+    // (plantuml.com, editor plugins, local jars) don't have installed. Smetana is PlantUML's
+    // bundled pure-Java layout engine — forcing it keeps exported files self-contained.
+    private static final String LAYOUT_PRAGMA = "!pragma layout smetana\n\n";
+
     public String exportClassDiagram(List<DiagramNode> nodes, List<DiagramEdge> edges) {
-        StringBuilder sb = new StringBuilder("@startuml\n\n");
+        StringBuilder sb = new StringBuilder("@startuml\n\n").append(LAYOUT_PRAGMA);
 
         for (DiagramNode n : nodes) {
             String alias = alias(n.getQualifiedName() != null ? n.getQualifiedName() : n.getName());
@@ -58,7 +63,7 @@ public class PlantUmlExporter {
     }
 
     public String exportPackageDiagram(List<PackageNode> packages, List<DiagramEdge> edges) {
-        StringBuilder sb = new StringBuilder("@startuml\n\n");
+        StringBuilder sb = new StringBuilder("@startuml\n\n").append(LAYOUT_PRAGMA);
 
         for (PackageNode pkg : packages) {
             sb.append("package \"").append(pkg.getName()).append("\" {\n");
