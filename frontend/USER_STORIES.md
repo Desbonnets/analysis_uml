@@ -105,3 +105,7 @@ Ce fichier est maintenu à la main par l'équipe et mis à jour par Claude Code 
 64. ✅ **Modifier / supprimer un diagramme enregistré** — En tant que propriétaire d'un diagramme UML, je veux le modifier ou le supprimer (les autres utilisateurs ne le peuvent pas).
 65. ✅ **Réutiliser un diagramme enregistré pour un contrôle de conformité** — En tant qu'utilisateur, je veux choisir un diagramme UML déjà enregistré dans l'onglet Conformité au lieu de le re-coller à chaque vérification.
 66. ✅ **Filtrer le périmètre d'un contrôle de conformité** — En tant qu'utilisateur, je veux restreindre la vérification de conformité (entités BDD seules, types de classe, package) pour comparer mon diagramme de référence à un sous-ensemble du code (ex. juste le schéma de base de données) plutôt qu'à toutes les classes de l'application.
+
+## Épopée 11 — Couverture des tests vs exigences
+
+67. 🚧 **Vérifier que les tests couvrent les user stories / cas d'usage** — En tant qu'utilisateur, je veux fournir mon référentiel d'exigences (user stories, cas d'usage) et voir quelles fonctionnalités n'ont aucun test correspondant, en priorité via un identifiant explicite sur le test et, à défaut, via une correspondance par mots-clés clairement marquée comme non certaine. Voir `docs/test-coverage-analysis.md` pour la conception détaillée (non implémenté).
