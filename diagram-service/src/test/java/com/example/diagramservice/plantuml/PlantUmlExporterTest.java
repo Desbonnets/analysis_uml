@@ -28,6 +28,12 @@ class PlantUmlExporterTest {
     }
 
     @Test
+    void forcesSmetanaLayoutSoExportDoesNotRequireGraphviz() {
+        assertThat(exporter.exportClassDiagram(List.of(), List.of())).contains("!pragma layout smetana");
+        assertThat(exporter.exportPackageDiagram(List.of(), List.of())).contains("!pragma layout smetana");
+    }
+
+    @Test
     void mapsNodeTypesToPlantUmlKeywords() {
         List<DiagramNode> nodes = List.of(
                 node("Order", "com.example.Order", "CLASS"),
