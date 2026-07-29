@@ -1,5 +1,5 @@
 import { apiRequest } from './_request'
-import type { ClassDiagramDto, ConformanceReportDto, DependencyGraphDto, MetricsDto, PackageDiagramDto } from '../types'
+import type { ClassDiagramDto, ConformanceReportDto, DependencyGraphDto, MetricsDto, PackageDiagramDto, PlantUmlExportDto } from '../types'
 
 export interface ClassDiagramFilters {
   filter?: string
@@ -48,4 +48,16 @@ export function renderPlantUml(source: string): Promise<{ svg: string | null }> 
     method: 'POST',
     body: JSON.stringify({ source }),
   })
+}
+
+export function exportClassDiagram(projectId: number, recordId: string, filters?: ClassDiagramFilters): Promise<PlantUmlExportDto> {
+  return apiRequest<PlantUmlExportDto>(`/diagrams/${projectId}/class/export?${filterParams(recordId, filters)}`)
+}
+
+export function exportDependencyGraph(projectId: number, recordId: string): Promise<PlantUmlExportDto> {
+  return apiRequest<PlantUmlExportDto>(`/diagrams/${projectId}/dependencies/export?recordId=${recordId}`)
+}
+
+export function exportPackageDiagram(projectId: number, recordId: string): Promise<PlantUmlExportDto> {
+  return apiRequest<PlantUmlExportDto>(`/diagrams/${projectId}/packages/export?recordId=${recordId}`)
 }

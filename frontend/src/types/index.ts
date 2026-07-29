@@ -277,6 +277,11 @@ export interface PackageDiagramDto {
   edges: DiagramEdge[]
 }
 
+export interface PlantUmlExportDto {
+  recordId: string
+  source: string
+}
+
 export interface ConformanceViolation {
   severity: string
   type: string
