@@ -1,7 +1,15 @@
 import { useEffect, useState } from 'react'
 import { useParams, Link } from 'react-router-dom'
 import { ArrowLeft, Download, ZoomIn, ZoomOut, Maximize2 } from 'lucide-react'
-import { checkConformance, getClassDiagram, getDependencyGraph, getPackageDiagram } from '../api/diagrams'
+import {
+  checkConformance,
+  exportClassDiagram,
+  exportDependencyGraph,
+  exportPackageDiagram,
+  getClassDiagram,
+  getDependencyGraph,
+  getPackageDiagram,
+} from '../api/diagrams'
 import { getSavedUmlDiagram, listSavedUmlDiagrams } from '../api/savedUmls'
 import type { ClassDiagramDto, ConformanceReportDto, DependencyGraphDto, DiagramEdge, PackageDiagramDto, PackageNode, SavedUmlDiagram } from '../types'
 import Pill from '../components/ui/Pill'
@@ -127,6 +135,9 @@ export default function DiagramEditor() {
   const [savedUmls, setSavedUmls] = useState<SavedUmlDiagram[]>([])
   const [selectedSavedUmlId, setSelectedSavedUmlId] = useState('')
 
+  const [exporting, setExporting] = useState(false)
+  const [exportError, setExportError] = useState<string | null>(null)
+
   useEffect(() => {
     if (!projectId || !recordId) return
 
@@ -193,6 +204,39 @@ export default function DiagramEditor() {
       .then(setConformanceReport)
       .catch(e => setConformanceError((e as Error).message))
       .finally(() => setConformanceChecking(false))
+  }
+
+  function downloadPlantUml(source: string, filename: string) {
+    const blob = new Blob([source], { type: 'text/plain;charset=utf-8' })
+    const url = URL.createObjectURL(blob)
+    const a = document.createElement('a')
+    a.href = url
+    a.download = filename
+    document.body.appendChild(a)
+    a.click()
+    document.body.removeChild(a)
+    URL.revokeObjectURL(url)
+  }
+
+  function handleExport() {
+    if (!projectId || !recordId || tab === 'conformance') return
+    setExporting(true)
+    setExportError(null)
+    const pid = Number(projectId)
+    const promise =
+      tab === 'class'
+        ? exportClassDiagram(pid, recordId, {
+            filter: entitiesOnly ? 'entities' : undefined,
+            types: typeFilter.size > 0 ? Array.from(typeFilter) : undefined,
+            packageContains: packageFilter || undefined,
+          })
+        : tab === 'dependencies'
+          ? exportDependencyGraph(pid, recordId)
+          : exportPackageDiagram(pid, recordId)
+    promise
+      .then(dto => downloadPlantUml(dto.source, `${tab}-${dto.recordId}.puml`))
+      .catch(e => setExportError((e as Error).message))
+      .finally(() => setExporting(false))
   }
 
   function toggleType(t: string) {
@@ -305,13 +349,25 @@ export default function DiagramEditor() {
               <button style={toolbarBtn} onClick={() => setZoom(1)}>
                 <Maximize2 size={14} />
               </button>
-              <button className="btn btn-primary btn-sm" style={{ marginLeft: 4 }}>
-                <Download size={13} /> Exporter
+              <button
+                className="btn btn-primary btn-sm"
+                style={{ marginLeft: 4 }}
+                disabled={exporting || !currentData}
+                onClick={handleExport}
+                title="Exporter ce diagramme au format PlantUML (.puml)"
+              >
+                <Download size={13} /> {exporting ? 'Export…' : 'Exporter'}
               </button>
             </>
           )}
         </div>
       </div>
+
+      {exportError && tab !== 'conformance' && (
+        <div style={{ padding: '8px 20px', background: 'var(--bg-1)', borderBottom: '1px solid var(--line-1)' }}>
+          <p style={{ margin: 0, fontSize: 12, color: 'var(--bad)' }}>{exportError}</p>
+        </div>
+      )}
 
       {/* Canvas */}
       <div className="canvas-bg" style={{ flex: 1, overflow: 'auto' }}>

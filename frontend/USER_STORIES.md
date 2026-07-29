@@ -58,7 +58,7 @@ Ce fichier est maintenu à la main par l'équipe et mis à jour par Claude Code 
 32. ✅ **Visualiser le diagramme de packages** — En tant qu'utilisateur, je veux voir l'organisation en packages et leurs dépendances.
 33. ✅ **Filtrer le diagramme de classes** — En tant qu'utilisateur, je veux filtrer par type (classe/abstraite/interface/enum), par "entités seules", ou par nom de package.
 34. ✅ **Zoomer / dézoomer / réinitialiser la vue** — En tant qu'utilisateur, je veux zoomer, dézoomer et recentrer le diagramme.
-35. 🚧 **Exporter le diagramme** — bouton présent, action non branchée.
+35. ✅ **Exporter le diagramme** — En tant qu'utilisateur, je veux exporter le diagramme de classes, de dépendances ou de packages généré depuis le code au format PlantUML (.puml) afin de le réutiliser ailleurs (versionner, l'utiliser comme diagramme de référence pour un contrôle de conformité).
 36. ✅ **Vérifier la conformité vs un diagramme de référence** — En tant qu'utilisateur, je veux coller ou importer un fichier PlantUML décrivant l'architecture attendue et comparer avec le code réel afin de détecter les écarts (erreurs/infos).
 37. ✅ **Gérer les erreurs de chargement du diagramme** — En tant qu'utilisateur, je veux un message clair si le diagram-service est indisponible ou si l'analyse est introuvable.
 

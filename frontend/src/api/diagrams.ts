@@ -1,5 +1,5 @@
 import { apiRequest } from './_request'
-import type { ClassDiagramDto, ConformanceReportDto, DependencyGraphDto, MetricsDto, PackageDiagramDto } from '../types'
+import type { ClassDiagramDto, ConformanceReportDto, DependencyGraphDto, MetricsDto, PackageDiagramDto, PlantUmlExportDto } from '../types'
 
 export interface ClassDiagramFilters {
   filter?: string
@@ -7,12 +7,16 @@ export interface ClassDiagramFilters {
   packageContains?: string
 }
 
-export function getClassDiagram(projectId: number, recordId: string, filters?: ClassDiagramFilters): Promise<ClassDiagramDto> {
+function filterParams(recordId: string, filters?: ClassDiagramFilters): URLSearchParams {
   const params = new URLSearchParams({ recordId })
   if (filters?.filter) params.set('filter', filters.filter)
   if (filters?.types && filters.types.length > 0) params.set('types', filters.types.join(','))
   if (filters?.packageContains) params.set('packageContains', filters.packageContains)
-  return apiRequest<ClassDiagramDto>(`/diagrams/${projectId}/class?${params}`)
+  return params
+}
+
+export function getClassDiagram(projectId: number, recordId: string, filters?: ClassDiagramFilters): Promise<ClassDiagramDto> {
+  return apiRequest<ClassDiagramDto>(`/diagrams/${projectId}/class?${filterParams(recordId, filters)}`)
 }
 
 export function getDependencyGraph(projectId: number, recordId: string): Promise<DependencyGraphDto> {
@@ -39,4 +43,16 @@ export function renderPlantUml(source: string): Promise<{ svg: string | null }> 
     method: 'POST',
     body: JSON.stringify({ source }),
   })
+}
+
+export function exportClassDiagram(projectId: number, recordId: string, filters?: ClassDiagramFilters): Promise<PlantUmlExportDto> {
+  return apiRequest<PlantUmlExportDto>(`/diagrams/${projectId}/class/export?${filterParams(recordId, filters)}`)
+}
+
+export function exportDependencyGraph(projectId: number, recordId: string): Promise<PlantUmlExportDto> {
+  return apiRequest<PlantUmlExportDto>(`/diagrams/${projectId}/dependencies/export?recordId=${recordId}`)
+}
+
+export function exportPackageDiagram(projectId: number, recordId: string): Promise<PlantUmlExportDto> {
+  return apiRequest<PlantUmlExportDto>(`/diagrams/${projectId}/packages/export?recordId=${recordId}`)
 }

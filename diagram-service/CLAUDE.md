@@ -41,3 +41,15 @@ GET /diagrams/{projectId}/metrics                    → MetricsDto (évolution 
 - `packageContains=<substring>` — keeps only classes whose package name contains the substring (case-insensitive)
 
 Frontend: `frontend/CLAUDE.md` — exposed as toggle buttons + a package text filter on the Classe UML tab of `DiagramEditor`.
+
+## PlantUML export
+
+Each code-derived diagram has an `/export` sibling endpoint returning `PlantUmlExportDto { recordId, source }` (PlantUML text, not rendered):
+```
+GET /diagrams/{projectId}/class/export?recordId=&filter=&types=&packageContains=
+GET /diagrams/{projectId}/dependencies/export?recordId=
+GET /diagrams/{projectId}/packages/export?recordId=
+```
+`class/export` accepts the same three filters as `GET /diagrams/{projectId}/class` (applied before conversion). `PlantUmlExporter` (in `plantuml/`, mirrors `PlantUmlParser`) does the DTO→text conversion; `PlantUmlExportService` wires it to `ClassDiagramService`/`DependencyGraphService`/`PackageDiagramService`. Output only uses syntax `PlantUmlParser` understands (plus association cardinality labels it ignores), so an exported class diagram can be re-imported as a conformance reference diagram.
+
+Frontend: the "Exporter" button in `DiagramEditor`'s toolbar (Classe UML / Dépendances / Packages tabs) downloads the result as a `.puml` file client-side (`Blob` + object URL).

@@ -7,12 +7,14 @@ import com.example.diagramservice.dto.DependencyGraphDto;
 import com.example.diagramservice.dto.MetricsDto;
 import com.example.diagramservice.dto.PackageDiagramDto;
 import com.example.diagramservice.dto.ParsePlantUmlRequest;
+import com.example.diagramservice.dto.PlantUmlExportDto;
 import com.example.diagramservice.dto.PlantUmlRenderDto;
 import com.example.diagramservice.service.ClassDiagramService;
 import com.example.diagramservice.service.ConformanceService;
 import com.example.diagramservice.service.DependencyGraphService;
 import com.example.diagramservice.service.MetricsService;
 import com.example.diagramservice.service.PackageDiagramService;
+import com.example.diagramservice.service.PlantUmlExportService;
 import com.example.diagramservice.service.PlantUmlRenderService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
@@ -36,6 +38,7 @@ public class DiagramController {
     private final MetricsService metricsService;
     private final ConformanceService conformanceService;
     private final PlantUmlRenderService plantUmlRenderService;
+    private final PlantUmlExportService plantUmlExportService;
 
     @GetMapping("/{projectId}/class")
     public ResponseEntity<ClassDiagramDto> getClassDiagram(
@@ -48,6 +51,17 @@ public class DiagramController {
         return ResponseEntity.ok(classDiagramService.generate(projectId, recordId, filter, types, packageContains, authHeader));
     }
 
+    @GetMapping("/{projectId}/class/export")
+    public ResponseEntity<PlantUmlExportDto> exportClassDiagram(
+            @PathVariable Long projectId,
+            @RequestParam(required = false) String recordId,
+            @RequestParam(required = false) String filter,
+            @RequestParam(required = false) String types,
+            @RequestParam(required = false) String packageContains,
+            @RequestHeader("Authorization") String authHeader) {
+        return ResponseEntity.ok(plantUmlExportService.exportClassDiagram(projectId, recordId, filter, types, packageContains, authHeader));
+    }
+
     @GetMapping("/{projectId}/dependencies")
     public ResponseEntity<DependencyGraphDto> getDependencyGraph(
             @PathVariable Long projectId,
@@ -56,12 +70,28 @@ public class DiagramController {
         return ResponseEntity.ok(dependencyGraphService.generate(projectId, recordId, authHeader));
     }
 
+    @GetMapping("/{projectId}/dependencies/export")
+    public ResponseEntity<PlantUmlExportDto> exportDependencyGraph(
+            @PathVariable Long projectId,
+            @RequestParam(required = false) String recordId,
+            @RequestHeader("Authorization") String authHeader) {
+        return ResponseEntity.ok(plantUmlExportService.exportDependencyGraph(projectId, recordId, authHeader));
+    }
+
     @GetMapping("/{projectId}/packages")
     public ResponseEntity<PackageDiagramDto> getPackageDiagram(
             @PathVariable Long projectId,
             @RequestParam(required = false) String recordId,
             @RequestHeader("Authorization") String authHeader) {
         return ResponseEntity.ok(packageDiagramService.generate(projectId, recordId, authHeader));
+    }
+
+    @GetMapping("/{projectId}/packages/export")
+    public ResponseEntity<PlantUmlExportDto> exportPackageDiagram(
+            @PathVariable Long projectId,
+            @RequestParam(required = false) String recordId,
+            @RequestHeader("Authorization") String authHeader) {
+        return ResponseEntity.ok(plantUmlExportService.exportPackageDiagram(projectId, recordId, authHeader));
     }
 
     @GetMapping("/{projectId}/metrics")
