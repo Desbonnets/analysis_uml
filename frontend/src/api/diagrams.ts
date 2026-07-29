@@ -31,8 +31,13 @@ export function getMetrics(projectId: number): Promise<MetricsDto> {
   return apiRequest<MetricsDto>(`/diagrams/${projectId}/metrics`)
 }
 
-export function checkConformance(projectId: number, recordId: string, source: string): Promise<ConformanceReportDto> {
-  return apiRequest<ConformanceReportDto>(`/diagrams/${projectId}/conformance?recordId=${recordId}`, {
+export function checkConformance(
+  projectId: number,
+  recordId: string,
+  source: string,
+  filters?: ClassDiagramFilters,
+): Promise<ConformanceReportDto> {
+  return apiRequest<ConformanceReportDto>(`/diagrams/${projectId}/conformance?${filterParams(recordId, filters)}`, {
     method: 'POST',
     body: JSON.stringify({ source }),
   })

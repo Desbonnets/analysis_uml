@@ -27,7 +27,7 @@ class ConformanceServiceTest {
     private ClassDiagramService classDiagramService;
 
     private final ConformanceService conformanceService(ClassDiagramDto actual) {
-        when(classDiagramService.generate(anyLong(), any(), isNull(), eq("Bearer t"))).thenReturn(actual);
+        when(classDiagramService.generate(anyLong(), any(), isNull(), isNull(), isNull(), eq("Bearer t"))).thenReturn(actual);
         return new ConformanceService(classDiagramService, new PlantUmlParser());
     }
 
@@ -116,5 +116,23 @@ class ConformanceServiceTest {
                 .contains(org.assertj.core.groups.Tuple.tuple("EXTRA_CLASS", "INFO"));
         assertThat(report.getInfoCount()).isEqualTo(1);
         assertThat(report.getErrorCount()).isZero();
+    }
+
+    @Test
+    void forwardsFiltersToClassDiagramService() {
+        ClassDiagramDto actual = ClassDiagramDto.builder()
+                .recordId("r1")
+                .nodes(List.of(node("Order", "CLASS")))
+                .edges(List.of())
+                .build();
+
+        when(classDiagramService.generate(eq(1L), isNull(), eq("entities"), eq("class,enum"), eq("com.example"), eq("Bearer t")))
+                .thenReturn(actual);
+        ConformanceService service = new ConformanceService(classDiagramService, new PlantUmlParser());
+
+        ConformanceReportDto report = service.generate(1L, null, "class Order",
+                "entities", "class,enum", "com.example", "Bearer t");
+
+        assertThat(report.getViolations()).isEmpty();
     }
 }

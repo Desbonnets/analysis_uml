@@ -132,6 +132,10 @@ export default function DiagramEditor() {
   const [conformanceReport, setConformanceReport] = useState<ConformanceReportDto | null>(null)
   const [conformanceChecking, setConformanceChecking] = useState(false)
   const [conformanceError, setConformanceError] = useState<string | null>(null)
+  const [conformanceEntitiesOnly, setConformanceEntitiesOnly] = useState(false)
+  const [conformanceTypeFilter, setConformanceTypeFilter] = useState<Set<string>>(new Set())
+  const [conformancePackageFilterInput, setConformancePackageFilterInput] = useState('')
+  const [conformancePackageFilter, setConformancePackageFilter] = useState('')
   const [savedUmls, setSavedUmls] = useState<SavedUmlDiagram[]>([])
   const [selectedSavedUmlId, setSelectedSavedUmlId] = useState('')
 
@@ -200,7 +204,11 @@ export default function DiagramEditor() {
     if (!projectId || !recordId || !conformanceSource.trim()) return
     setConformanceChecking(true)
     setConformanceError(null)
-    checkConformance(Number(projectId), recordId, conformanceSource)
+    checkConformance(Number(projectId), recordId, conformanceSource, {
+      filter: conformanceEntitiesOnly ? 'entities' : undefined,
+      types: conformanceTypeFilter.size > 0 ? Array.from(conformanceTypeFilter) : undefined,
+      packageContains: conformancePackageFilter || undefined,
+    })
       .then(setConformanceReport)
       .catch(e => setConformanceError((e as Error).message))
       .finally(() => setConformanceChecking(false))
@@ -241,6 +249,16 @@ export default function DiagramEditor() {
 
   function toggleType(t: string) {
     setTypeFilter(prev => {
+      const next = new Set(prev)
+      if (next.has(t)) next.delete(t)
+      else next.add(t)
+      return next
+    })
+  }
+
+  function toggleConformanceType(t: string) {
+    setConformanceReport(null)
+    setConformanceTypeFilter(prev => {
       const next = new Set(prev)
       if (next.has(t)) next.delete(t)
       else next.add(t)
@@ -393,6 +411,48 @@ export default function DiagramEditor() {
                   ))}
                 </select>
               )}
+
+              <div style={{ display: 'flex', flexWrap: 'wrap', alignItems: 'center', gap: 6 }}>
+                <span style={{ fontSize: 11, color: 'var(--fg-3)' }}>Classes vérifiées :</span>
+                <button
+                  onClick={() => { setConformanceReport(null); setConformanceEntitiesOnly(v => !v) }}
+                  style={{ ...tabBtn(conformanceEntitiesOnly), fontSize: 11, padding: '5px 10px' }}
+                >
+                  Entités seules (BDD)
+                </button>
+
+                {([
+                  ['class', 'Classes'],
+                  ['abstract_class', 'Abstraites'],
+                  ['interface', 'Interfaces'],
+                  ['enum', 'Enums'],
+                ] as const).map(([value, label]) => (
+                  <button
+                    key={value}
+                    onClick={() => toggleConformanceType(value)}
+                    style={{ ...tabBtn(conformanceTypeFilter.has(value)), fontSize: 11, padding: '5px 10px' }}
+                  >
+                    {label}
+                  </button>
+                ))}
+
+                <input
+                  value={conformancePackageFilterInput}
+                  onChange={e => setConformancePackageFilterInput(e.target.value)}
+                  onKeyDown={e => { if (e.key === 'Enter') { setConformanceReport(null); setConformancePackageFilter(conformancePackageFilterInput.trim()) } }}
+                  onBlur={() => { setConformanceReport(null); setConformancePackageFilter(conformancePackageFilterInput.trim()) }}
+                  placeholder="Filtrer par package…"
+                  style={{
+                    fontSize: 11,
+                    padding: '5px 10px',
+                    borderRadius: 6,
+                    border: '1px solid var(--line-2)',
+                    background: 'var(--bg-2)',
+                    color: 'var(--fg-1)',
+                    width: 140,
+                  }}
+                />
+              </div>
               <textarea
                 value={conformanceSource}
                 onChange={e => setConformanceSource(e.target.value)}
