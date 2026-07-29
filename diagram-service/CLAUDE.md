@@ -41,3 +41,5 @@ GET /diagrams/{projectId}/metrics                    → MetricsDto (évolution 
 - `packageContains=<substring>` — keeps only classes whose package name contains the substring (case-insensitive)
 
 Frontend: `frontend/CLAUDE.md` — exposed as toggle buttons + a package text filter on the Classe UML tab of `DiagramEditor`.
+
+`POST /diagrams/{projectId}/conformance` accepts the same three query params (`filter`, `types`, `packageContains`), applied to the **actual** side of the comparison before it's diffed against the reference PlantUML — e.g. `filter=entities` checks only DB entity classes against the reference, so non-entity classes in the codebase are neither reported missing nor flagged as extra. `ConformanceService.generate(...)` forwards them straight to `ClassDiagramService.generate(...)`.

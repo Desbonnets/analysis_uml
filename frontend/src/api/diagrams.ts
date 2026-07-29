@@ -7,12 +7,16 @@ export interface ClassDiagramFilters {
   packageContains?: string
 }
 
-export function getClassDiagram(projectId: number, recordId: string, filters?: ClassDiagramFilters): Promise<ClassDiagramDto> {
+function filterParams(recordId: string, filters?: ClassDiagramFilters): URLSearchParams {
   const params = new URLSearchParams({ recordId })
   if (filters?.filter) params.set('filter', filters.filter)
   if (filters?.types && filters.types.length > 0) params.set('types', filters.types.join(','))
   if (filters?.packageContains) params.set('packageContains', filters.packageContains)
-  return apiRequest<ClassDiagramDto>(`/diagrams/${projectId}/class?${params}`)
+  return params
+}
+
+export function getClassDiagram(projectId: number, recordId: string, filters?: ClassDiagramFilters): Promise<ClassDiagramDto> {
+  return apiRequest<ClassDiagramDto>(`/diagrams/${projectId}/class?${filterParams(recordId, filters)}`)
 }
 
 export function getDependencyGraph(projectId: number, recordId: string): Promise<DependencyGraphDto> {
@@ -27,8 +31,13 @@ export function getMetrics(projectId: number): Promise<MetricsDto> {
   return apiRequest<MetricsDto>(`/diagrams/${projectId}/metrics`)
 }
 
-export function checkConformance(projectId: number, recordId: string, source: string): Promise<ConformanceReportDto> {
-  return apiRequest<ConformanceReportDto>(`/diagrams/${projectId}/conformance?recordId=${recordId}`, {
+export function checkConformance(
+  projectId: number,
+  recordId: string,
+  source: string,
+  filters?: ClassDiagramFilters,
+): Promise<ConformanceReportDto> {
+  return apiRequest<ConformanceReportDto>(`/diagrams/${projectId}/conformance?${filterParams(recordId, filters)}`, {
     method: 'POST',
     body: JSON.stringify({ source }),
   })
