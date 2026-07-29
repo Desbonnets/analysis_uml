@@ -33,8 +33,7 @@ class UserControllerIntegrationTest {
                         .content(objectMapper.writeValueAsString(body)))
                 .andExpect(status().isOk())
                 .andReturn();
-        var response = objectMapper.readValue(result.getResponse().getContentAsString(), Map.class);
-        adminToken = (String) response.get("token");
+        adminToken = result.getResponse().getCookie("auth_token").getValue();
     }
 
     @Test
@@ -46,9 +45,9 @@ class UserControllerIntegrationTest {
     }
 
     @Test
-    void listUsers_returns403ForUnauthenticated() throws Exception {
+    void listUsers_returns401ForUnauthenticated() throws Exception {
         mockMvc.perform(get("/users"))
-                .andExpect(status().isForbidden());
+                .andExpect(status().isUnauthorized());
     }
 
     @Test
@@ -58,7 +57,7 @@ class UserControllerIntegrationTest {
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(objectMapper.writeValueAsString(loginBody)))
                 .andReturn();
-        String devToken = (String) objectMapper.readValue(result.getResponse().getContentAsString(), Map.class).get("token");
+        String devToken = result.getResponse().getCookie("auth_token").getValue();
 
         mockMvc.perform(get("/users").header("Authorization", "Bearer " + devToken))
                 .andExpect(status().isForbidden());
