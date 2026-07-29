@@ -54,3 +54,5 @@ GET /diagrams/{projectId}/packages/export?recordId=
 
 Frontend: the "Exporter" button in `DiagramEditor`'s toolbar (Classe UML / Dépendances / Packages tabs) downloads the result as a `.puml` file client-side (`Blob` + object URL).
 `POST /diagrams/{projectId}/conformance` accepts the same three query params (`filter`, `types`, `packageContains`), applied to the **actual** side of the comparison before it's diffed against the reference PlantUML — e.g. `filter=entities` checks only DB entity classes against the reference, so non-entity classes in the codebase are neither reported missing nor flagged as extra. `ConformanceService.generate(...)` forwards them straight to `ClassDiagramService.generate(...)`.
+
+**Known gap**: conformance only checks class presence/type/relations — field and method members are never diffed, so a reference class and an actual class with the same name but different attributes report no violation. See `docs/conformance-precision.md` for the planned configurable-precision fix (not implemented).
