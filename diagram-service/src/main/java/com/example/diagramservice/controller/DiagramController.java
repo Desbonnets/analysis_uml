@@ -75,9 +75,13 @@ public class DiagramController {
     public ResponseEntity<ConformanceReportDto> checkConformance(
             @PathVariable Long projectId,
             @RequestParam(required = false) String recordId,
+            @RequestParam(required = false) String filter,
+            @RequestParam(required = false) String types,
+            @RequestParam(required = false) String packageContains,
             @RequestBody ConformanceRequest request,
             @RequestHeader("Authorization") String authHeader) {
-        return ResponseEntity.ok(conformanceService.generate(projectId, recordId, request.getSource(), authHeader));
+        return ResponseEntity.ok(conformanceService.generate(
+                projectId, recordId, request.getSource(), filter, types, packageContains, authHeader));
     }
 
     @PostMapping("/render-plantuml")

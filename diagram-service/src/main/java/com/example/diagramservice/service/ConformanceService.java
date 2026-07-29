@@ -35,9 +35,16 @@ public class ConformanceService {
     private final PlantUmlParser plantUmlParser;
 
     public ConformanceReportDto generate(Long projectId, String recordId, String source, String authHeader) {
+        return generate(projectId, recordId, source, null, null, null, authHeader);
+    }
+
+    public ConformanceReportDto generate(Long projectId, String recordId, String source,
+                                          String filter, String types, String packageContains, String authHeader) {
         // classDiagramService already resolves recordId==null to the latest analysis
         // and returns the resolved id, so no need to duplicate that lookup here.
-        ClassDiagramDto actual = classDiagramService.generate(projectId, recordId, null, authHeader);
+        // Filters restrict which actual classes are checked against the reference diagram —
+        // e.g. filter=entities to verify only the DB entity subset, not the whole codebase.
+        ClassDiagramDto actual = classDiagramService.generate(projectId, recordId, filter, types, packageContains, authHeader);
         PlantUmlParser.ParsedDiagram expected = plantUmlParser.parse(source);
 
         Map<String, DiagramNode> actualByName = new LinkedHashMap<>();
