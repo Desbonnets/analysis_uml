@@ -34,9 +34,9 @@ class AuthControllerIntegrationTest {
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(objectMapper.writeValueAsString(body)))
                 .andExpect(status().isCreated())
-                .andExpect(jsonPath("$.token").isNotEmpty())
-                .andExpect(jsonPath("$.user.email").value("valid@integration.test"))
-                .andExpect(jsonPath("$.user.role").value("developer"));
+                .andExpect(cookie().exists("auth_token"))
+                .andExpect(jsonPath("$.email").value("valid@integration.test"))
+                .andExpect(jsonPath("$.role").value("developer"));
     }
 
     @Test
@@ -116,8 +116,8 @@ class AuthControllerIntegrationTest {
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(objectMapper.writeValueAsString(loginBody)))
                 .andExpect(status().isOk())
-                .andExpect(jsonPath("$.token").isNotEmpty())
-                .andExpect(jsonPath("$.user.email").value("login@integration.test"));
+                .andExpect(cookie().exists("auth_token"))
+                .andExpect(jsonPath("$.email").value("login@integration.test"));
     }
 
     @Test
