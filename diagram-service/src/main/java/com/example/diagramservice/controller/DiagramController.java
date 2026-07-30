@@ -9,6 +9,8 @@ import com.example.diagramservice.dto.PackageDiagramDto;
 import com.example.diagramservice.dto.ParsePlantUmlRequest;
 import com.example.diagramservice.dto.PlantUmlExportDto;
 import com.example.diagramservice.dto.PlantUmlRenderDto;
+import com.example.diagramservice.dto.TestCoverageReportDto;
+import com.example.diagramservice.dto.TestCoverageRequest;
 import com.example.diagramservice.service.ClassDiagramService;
 import com.example.diagramservice.service.ConformanceService;
 import com.example.diagramservice.service.DependencyGraphService;
@@ -16,6 +18,7 @@ import com.example.diagramservice.service.MetricsService;
 import com.example.diagramservice.service.PackageDiagramService;
 import com.example.diagramservice.service.PlantUmlExportService;
 import com.example.diagramservice.service.PlantUmlRenderService;
+import com.example.diagramservice.service.TestCoverageService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.GetMapping;
@@ -39,6 +42,7 @@ public class DiagramController {
     private final ConformanceService conformanceService;
     private final PlantUmlRenderService plantUmlRenderService;
     private final PlantUmlExportService plantUmlExportService;
+    private final TestCoverageService testCoverageService;
 
     @GetMapping("/{projectId}/class")
     public ResponseEntity<ClassDiagramDto> getClassDiagram(
@@ -115,6 +119,16 @@ public class DiagramController {
         return ResponseEntity.ok(conformanceService.generate(
                 projectId, recordId, request.getSource(), filter, types, packageContains,
                 checkFields, checkMethods, authHeader));
+    }
+
+    @PostMapping("/{projectId}/test-coverage")
+    public ResponseEntity<TestCoverageReportDto> checkTestCoverage(
+            @PathVariable Long projectId,
+            @RequestParam(required = false) String recordId,
+            @RequestBody TestCoverageRequest request,
+            @RequestHeader("Authorization") String authHeader) {
+        return ResponseEntity.ok(testCoverageService.generate(
+                projectId, recordId, request.getRequirements(), authHeader));
     }
 
     @PostMapping("/render-plantuml")

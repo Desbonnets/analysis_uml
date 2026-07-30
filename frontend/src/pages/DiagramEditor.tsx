@@ -3,6 +3,7 @@ import { useParams, Link } from 'react-router-dom'
 import { ArrowLeft, Download, ZoomIn, ZoomOut, Maximize2 } from 'lucide-react'
 import {
   checkConformance,
+  checkTestCoverage,
   exportClassDiagram,
   exportDependencyGraph,
   exportPackageDiagram,
@@ -11,7 +12,7 @@ import {
   getPackageDiagram,
 } from '../api/diagrams'
 import { getSavedUmlDiagram, listSavedUmlDiagrams } from '../api/savedUmls'
-import type { ClassDiagramDto, ConformanceReportDto, DependencyGraphDto, DiagramEdge, PackageDiagramDto, PackageNode, SavedUmlDiagram } from '../types'
+import type { ClassDiagramDto, ConformanceReportDto, DependencyGraphDto, DiagramEdge, PackageDiagramDto, PackageNode, SavedUmlDiagram, TestCoverageReportDto } from '../types'
 import Pill from '../components/ui/Pill'
 import ClassDiagramCanvas from '../components/diagram/ClassDiagramCanvas'
 
@@ -112,7 +113,7 @@ const tabBtn = (active: boolean): React.CSSProperties => ({
 
 // ─── Page principale ──────────────────────────────────────────────────────────
 
-type Tab = 'class' | 'dependencies' | 'packages' | 'conformance'
+type Tab = 'class' | 'dependencies' | 'packages' | 'conformance' | 'test-coverage'
 
 export default function DiagramEditor() {
   const { projectId, recordId } = useParams<{ projectId: string; recordId: string }>()
@@ -138,6 +139,11 @@ export default function DiagramEditor() {
   const [conformancePackageFilter, setConformancePackageFilter] = useState('')
   const [checkFields, setCheckFields] = useState(false)
   const [checkMethods, setCheckMethods] = useState(false)
+
+  const [testCoverageRequirements, setTestCoverageRequirements] = useState('')
+  const [testCoverageReport, setTestCoverageReport] = useState<TestCoverageReportDto | null>(null)
+  const [testCoverageChecking, setTestCoverageChecking] = useState(false)
+  const [testCoverageError, setTestCoverageError] = useState<string | null>(null)
   const [savedUmls, setSavedUmls] = useState<SavedUmlDiagram[]>([])
   const [selectedSavedUmlId, setSelectedSavedUmlId] = useState('')
 
@@ -194,6 +200,13 @@ export default function DiagramEditor() {
     reader.readAsText(file)
   }
 
+  function handleRequirementsFile(file: File | undefined) {
+    if (!file) return
+    const reader = new FileReader()
+    reader.onload = () => setTestCoverageRequirements(String(reader.result ?? ''))
+    reader.readAsText(file)
+  }
+
   function loadSavedUml(id: string) {
     setSelectedSavedUmlId(id)
     if (!id) return
@@ -216,6 +229,16 @@ export default function DiagramEditor() {
       .then(setConformanceReport)
       .catch(e => setConformanceError((e as Error).message))
       .finally(() => setConformanceChecking(false))
+  }
+
+  function runTestCoverageCheck() {
+    if (!projectId || !recordId || !testCoverageRequirements.trim()) return
+    setTestCoverageChecking(true)
+    setTestCoverageError(null)
+    checkTestCoverage(Number(projectId), recordId, testCoverageRequirements)
+      .then(setTestCoverageReport)
+      .catch(e => setTestCoverageError((e as Error).message))
+      .finally(() => setTestCoverageChecking(false))
   }
 
   function downloadPlantUml(source: string, filename: string) {
@@ -297,6 +320,10 @@ export default function DiagramEditor() {
                 ? (conformanceReport
                     ? `${conformanceReport.errorCount} erreur(s) · ${conformanceReport.infoCount} info(s)`
                     : 'Diagramme de référence non vérifié')
+                : tab === 'test-coverage'
+                ? (testCoverageReport
+                    ? `${testCoverageReport.coveredCount}/${testCoverageReport.requirementCount} exigence(s) couverte(s)`
+                    : 'Référentiel d\'exigences non vérifié')
                 : `${nodeCount} ${tab === 'packages' ? 'packages' : 'classes'} · ${edgeCount} relations`}
             </p>
           </div>
@@ -305,9 +332,9 @@ export default function DiagramEditor() {
         <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
           {/* Tabs */}
           <div style={{ display: 'flex', gap: 4, marginRight: 12 }}>
-            {(['class', 'dependencies', 'packages', 'conformance'] as Tab[]).map(t => (
+            {(['class', 'dependencies', 'packages', 'conformance', 'test-coverage'] as Tab[]).map(t => (
               <button key={t} style={tabBtn(tab === t)} onClick={() => setTab(t)}>
-                {t === 'class' ? 'Classe UML' : t === 'dependencies' ? 'Dépendances' : t === 'packages' ? 'Packages' : 'Conformité'}
+                {t === 'class' ? 'Classe UML' : t === 'dependencies' ? 'Dépendances' : t === 'packages' ? 'Packages' : t === 'conformance' ? 'Conformité' : 'Couverture des tests'}
               </button>
             ))}
           </div>
@@ -357,7 +384,7 @@ export default function DiagramEditor() {
           )}
 
           {/* Zoom */}
-          {tab !== 'conformance' && (
+          {tab !== 'conformance' && tab !== 'test-coverage' && (
             <>
               <button style={toolbarBtn} onClick={() => setZoom(z => Math.max(0.25, z - 0.1))}>
                 <ZoomOut size={14} />
@@ -385,7 +412,7 @@ export default function DiagramEditor() {
         </div>
       </div>
 
-      {exportError && tab !== 'conformance' && (
+      {exportError && tab !== 'conformance' && tab !== 'test-coverage' && (
         <div style={{ padding: '8px 20px', background: 'var(--bg-1)', borderBottom: '1px solid var(--line-1)' }}>
           <p style={{ margin: 0, fontSize: 12, color: 'var(--bad)' }}>{exportError}</p>
         </div>
@@ -538,6 +565,89 @@ export default function DiagramEditor() {
                     ))}
                   </div>
                 )}
+              </div>
+            )}
+          </div>
+        ) : tab === 'test-coverage' ? (
+          <div style={{ maxWidth: 720, margin: '0 auto', padding: 24, display: 'flex', flexDirection: 'column', gap: 16 }}>
+            <div className="card" style={{ padding: 16, display: 'flex', flexDirection: 'column', gap: 10 }}>
+              <p style={{ margin: 0, fontSize: 12, color: 'var(--fg-2)' }}>
+                Colle ton référentiel d'exigences (ou importe un fichier .md/.txt) : une exigence par ligne,
+                au format "N. Titre — description". L'application recherche les tests qui s'en réclament
+                (tag/annotation avec l'ID) et, à défaut, par recoupement de mots-clés (marqué comme non fiable).
+                Ceci prouve qu'un test existe et prétend couvrir l'exigence — pas qu'il teste le bon comportement.
+              </p>
+
+              <textarea
+                value={testCoverageRequirements}
+                onChange={e => setTestCoverageRequirements(e.target.value)}
+                placeholder={'1. Connexion utilisateur — se connecter avec email/mot de passe\n2. Inscription — créer un compte'}
+                rows={10}
+                style={{
+                  fontFamily: 'var(--font-mono)',
+                  fontSize: 12,
+                  padding: 10,
+                  borderRadius: 6,
+                  border: '1px solid var(--line-2)',
+                  background: 'var(--bg-2)',
+                  color: 'var(--fg-1)',
+                  resize: 'vertical',
+                }}
+              />
+              <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+                <input
+                  type="file"
+                  accept=".md,.txt"
+                  onChange={e => handleRequirementsFile(e.target.files?.[0])}
+                  style={{ fontSize: 12, color: 'var(--fg-2)' }}
+                />
+                <button
+                  className="btn btn-primary btn-sm"
+                  disabled={testCoverageChecking || !testCoverageRequirements.trim()}
+                  onClick={runTestCoverageCheck}
+                  style={{ marginLeft: 'auto' }}
+                >
+                  {testCoverageChecking ? 'Vérification…' : 'Vérifier'}
+                </button>
+              </div>
+            </div>
+
+            {testCoverageError && (
+              <div className="card" style={{ borderColor: 'var(--bad)', padding: 14 }}>
+                <p style={{ margin: 0, fontSize: 12, color: 'var(--bad)' }}>{testCoverageError}</p>
+              </div>
+            )}
+
+            {testCoverageReport && (
+              <div className="card" style={{ padding: 16, display: 'flex', flexDirection: 'column', gap: 10 }}>
+                <p style={{ margin: 0, fontSize: 11, color: 'var(--fg-2)' }}>
+                  {testCoverageReport.coveredCount}/{testCoverageReport.requirementCount} exigence(s) couverte(s)
+                  · {testCoverageReport.uncoveredCount} non couverte(s)
+                </p>
+                <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+                  {testCoverageReport.coverage.map(c => (
+                    <div key={c.requirementId} style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
+                      <div style={{ display: 'flex', alignItems: 'baseline', gap: 8 }}>
+                        <Pill tone={c.status === 'COVERED_CONFIRMED' ? 'ok' : c.status === 'COVERED_HEURISTIC' ? 'warn' : 'bad'}>
+                          {c.status === 'COVERED_CONFIRMED' ? 'Confirmé' : c.status === 'COVERED_HEURISTIC' ? '⚠ Heuristique' : 'Non couverte'}
+                        </Pill>
+                        <span style={{ fontSize: 12, color: 'var(--fg-1)' }}>{c.requirementId}. {c.title}</span>
+                      </div>
+                      {c.matchedTests.length > 0 && (
+                        <ul style={{ margin: '0 0 0 24px', padding: 0, fontSize: 11, color: 'var(--fg-2)' }}>
+                          {c.matchedTests.map((t, i) => (
+                            <li key={i}>
+                              {t.className}.{t.methodName}
+                              {t.confidence === 'HEURISTIC' && t.matchedKeywords && (
+                                <> — correspondance approximative sur : {t.matchedKeywords.join(', ')}</>
+                              )}
+                            </li>
+                          ))}
+                        </ul>
+                      )}
+                    </div>
+                  ))}
+                </div>
               </div>
             )}
           </div>

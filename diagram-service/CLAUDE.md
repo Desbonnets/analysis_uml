@@ -56,3 +56,38 @@ Frontend: the "Exporter" button in `DiagramEditor`'s toolbar (Classe UML / Dépe
 `POST /diagrams/{projectId}/conformance` accepts the same three query params (`filter`, `types`, `packageContains`), applied to the **actual** side of the comparison before it's diffed against the reference PlantUML — e.g. `filter=entities` checks only DB entity classes against the reference, so non-entity classes in the codebase are neither reported missing nor flagged as extra. `ConformanceService.generate(...)` forwards them straight to `ClassDiagramService.generate(...)`.
 
 **Configurable precision**: two more query params, `checkFields` and `checkMethods` (booleans, default `false`), opt in to diffing class members instead of just presence/type/relations. `PlantUmlParser` now parses class-body content (`{ ... }`, same-line brace only) into `FieldDecl`/`MethodDecl`; `ConformanceService` diffs those against the actual side's already-formatted `DiagramNode.fields`/`methods` strings (same `"+ name: Type"` / `"+ name(Type1, Type2): Return"` convention on both sides, reused via `PlantUmlParser#parseField`/`parseMethod`). New violation types: `FIELD_MISSING`/`FIELD_TYPE_MISMATCH`/`EXTRA_FIELD`, `METHOD_MISSING`/`METHOD_SIGNATURE_MISMATCH`/`EXTRA_METHOD`. A reference class written without a body (`class Foo` with no `{ }`) is exempt from member checks even when the flags are on — no body means "members unspecified", not "must have none". `checkExceptions` is **not implemented** — blocked on `analysis-service` not capturing `throws` yet, see `docs/conformance-precision.md`.
+
+## Test coverage vs requirements
+
+```
+POST /diagrams/{projectId}/test-coverage?recordId=
+  body: { requirements: "1. Titre — description\n2. ..." }
+  → TestCoverageReportDto
+```
+
+Same "user supplies a reference, platform diffs it against the analyzed code" shape as
+`ConformanceService`, applied to tests instead of the class diagram:
+- `RequirementsParser` (`requirements/`) parses the pasted/imported backlog — one requirement per
+  line, `"N. **Title** — description"` (bold and the `—`/`-` separator both optional; a leading
+  status marker like the emoji used in this repo's own `USER_STORIES.md` is stripped). Lines not
+  matching `N. ...` are skipped.
+- `TestCoverageService` fetches the full `AnalysisRecord` (not the flattened `ClassDiagramDto` —
+  it needs `MethodDef.isTest`/`storyId` per method, not the pre-formatted diagram strings) and
+  matches each detected test against the parsed requirements, ID mode first:
+  1. **ID mode**: digits extracted from the test's `storyId` match a requirement's numeric ID →
+     `CONFIRMED`.
+  2. **Keyword mode** (only for tests with no ID match): overlap between the test method name's
+     words and the requirement's title+description words, against a minimum-shared-keywords
+     threshold → `HEURISTIC` on the best-scoring requirement; below threshold, the test isn't
+     linked to any requirement. Thresholds are a starting point, not tuned against a real backlog
+     — see `docs/test-coverage-analysis.md`.
+- A requirement's `status` is `COVERED_CONFIRMED` / `COVERED_HEURISTIC` / `UNCOVERED` — confirmed
+  wins if a requirement has both kinds of match.
+
+**Scope**: this proves a test exists and claims to cover a requirement, not that it tests the
+right behavior — a traceability aid, not a quality guarantee. Test detection today only covers
+Java (`@Test` + `@Tag`) and PHP (`test*`/`@test` in a `TestCase` subclass + `@group`) — see
+`analysis-service/CLAUDE.md`, "Test detection".
+
+Frontend: "Couverture des tests" tab in `DiagramEditor`, same paste/import-then-verify UX as the
+Conformité tab (no saved-backlog reuse yet, unlike `SavedUmlDiagram` for PlantUML references).

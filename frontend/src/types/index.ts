@@ -301,6 +301,29 @@ export interface ConformanceReportDto {
   violations: ConformanceViolation[]
 }
 
+export interface MatchedTestDto {
+  className: string
+  methodName: string
+  confidence: string // CONFIRMED | HEURISTIC
+  matchedKeywords?: string[]
+}
+
+export interface RequirementCoverageDto {
+  requirementId: string
+  title: string
+  status: string // COVERED_CONFIRMED | COVERED_HEURISTIC | UNCOVERED
+  matchedTests: MatchedTestDto[]
+}
+
+export interface TestCoverageReportDto {
+  projectId: number
+  recordId: string
+  requirementCount: number
+  coveredCount: number
+  uncoveredCount: number
+  coverage: RequirementCoverageDto[]
+}
+
 export interface MetricPoint {
   recordId: string
   analyzedAt: string

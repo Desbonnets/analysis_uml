@@ -109,4 +109,4 @@ Ce fichier est maintenu à la main par l'équipe et mis à jour par Claude Code 
 
 ## Épopée 11 — Couverture des tests vs exigences
 
-68. 🚧 **Vérifier que les tests couvrent les user stories / cas d'usage** — En tant qu'utilisateur, je veux fournir mon référentiel d'exigences (user stories, cas d'usage) et voir quelles fonctionnalités n'ont aucun test correspondant, en priorité via un identifiant explicite sur le test et, à défaut, via une correspondance par mots-clés clairement marquée comme non certaine. Voir `docs/test-coverage-analysis.md` pour la conception détaillée (non implémenté).
+68. ✅ **Vérifier que les tests couvrent les user stories / cas d'usage** — En tant qu'utilisateur, je veux fournir mon référentiel d'exigences (user stories, cas d'usage) et voir quelles fonctionnalités n'ont aucun test correspondant, en priorité via un identifiant explicite sur le test (`@Tag`/`@group`) et, à défaut, via une correspondance par mots-clés clairement marquée comme non certaine (⚠️ Heuristique). Nouvel onglet "Couverture des tests" dans `DiagramEditor`. Détection des tests limitée à Java et PHP pour l'instant — voir `docs/test-coverage-analysis.md`.
