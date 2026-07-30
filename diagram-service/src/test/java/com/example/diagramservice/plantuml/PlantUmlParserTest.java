@@ -98,4 +98,50 @@ class PlantUmlParserTest {
         assertThat(result.classTypes()).containsOnlyKeys("Order");
         assertThat(result.relations()).isEmpty();
     }
+
+    @Test
+    void parsesFieldsAndMethodsInClassBody() {
+        String source = """
+                class User {
+                  +id: Long
+                  +nom: String
+                  +prenom: String
+                  --
+                  +getId(): Long
+                  +rename(String, String): void
+                }
+                class Empty
+                """;
+
+        var result = parser.parse(source);
+
+        assertThat(result.fields().get("User")).containsExactly(
+                new PlantUmlParser.FieldDecl("id", "Long"),
+                new PlantUmlParser.FieldDecl("nom", "String"),
+                new PlantUmlParser.FieldDecl("prenom", "String")
+        );
+        assertThat(result.methods().get("User")).containsExactly(
+                new PlantUmlParser.MethodDecl("getId", java.util.List.of(), "Long"),
+                new PlantUmlParser.MethodDecl("rename", java.util.List.of("String", "String"), "void")
+        );
+        assertThat(result.fields()).doesNotContainKey("Empty");
+        assertThat(result.methods()).doesNotContainKey("Empty");
+    }
+
+    @Test
+    void bodyLinesAreNotMistakenForRelations() {
+        String source = """
+                class User {
+                  +id: Long
+                }
+                class Order
+                Order --> User
+                """;
+
+        var result = parser.parse(source);
+
+        assertThat(result.relations()).containsExactly(
+                new PlantUmlParser.ParsedRelation("Order", "User", "ASSOCIATION")
+        );
+    }
 }

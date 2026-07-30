@@ -108,10 +108,13 @@ public class DiagramController {
             @RequestParam(required = false) String filter,
             @RequestParam(required = false) String types,
             @RequestParam(required = false) String packageContains,
+            @RequestParam(required = false, defaultValue = "false") boolean checkFields,
+            @RequestParam(required = false, defaultValue = "false") boolean checkMethods,
             @RequestBody ConformanceRequest request,
             @RequestHeader("Authorization") String authHeader) {
         return ResponseEntity.ok(conformanceService.generate(
-                projectId, recordId, request.getSource(), filter, types, packageContains, authHeader));
+                projectId, recordId, request.getSource(), filter, types, packageContains,
+                checkFields, checkMethods, authHeader));
     }
 
     @PostMapping("/render-plantuml")

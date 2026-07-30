@@ -287,6 +287,7 @@ export interface ConformanceViolation {
   type: string
   className: string
   relatedClassName: string
+  memberName?: string
   message: string
 }
 
