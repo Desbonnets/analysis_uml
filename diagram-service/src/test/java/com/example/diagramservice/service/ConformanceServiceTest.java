@@ -36,6 +36,11 @@ class ConformanceServiceTest {
                 .fields(List.of()).methods(List.of()).build();
     }
 
+    private DiagramNode node(String name, String type, List<String> fields, List<String> methods) {
+        return DiagramNode.builder().id(name).name(name).qualifiedName(name).type(type)
+                .fields(fields).methods(methods).build();
+    }
+
     @Test
     void flagsMissingClass() {
         ClassDiagramDto actual = ClassDiagramDto.builder()
@@ -116,6 +121,120 @@ class ConformanceServiceTest {
                 .contains(org.assertj.core.groups.Tuple.tuple("EXTRA_CLASS", "INFO"));
         assertThat(report.getInfoCount()).isEqualTo(1);
         assertThat(report.getErrorCount()).isZero();
+    }
+
+    @Test
+    void flagsFieldViolationsWhenCheckFieldsEnabled() {
+        // Fixture from diagram-service/docs/conformance-precision.md: reference has
+        // id/nom/prenom/email/password, actual is missing "prenom" and has an extra "region".
+        ClassDiagramDto actual = ClassDiagramDto.builder()
+                .recordId("r1")
+                .nodes(List.of(node("User", "CLASS", List.of(
+                        "+ id: Long", "+ nom: String", "+ email: String", "+ password: String", "+ region: String"
+                ), List.of())))
+                .edges(List.of())
+                .build();
+
+        String reference = """
+                class User {
+                  +id: Long
+                  +nom: String
+                  +prenom: String
+                  +email: String
+                  +password: String
+                }
+                """;
+
+        ConformanceReportDto report = conformanceService(actual)
+                .generate(1L, null, reference, null, null, null, true, false, "Bearer t");
+
+        assertThat(report.getViolations())
+                .extracting(ConformanceViolation::getType, ConformanceViolation::getMemberName)
+                .containsExactlyInAnyOrder(
+                        org.assertj.core.groups.Tuple.tuple("FIELD_MISSING", "prenom"),
+                        org.assertj.core.groups.Tuple.tuple("EXTRA_FIELD", "region")
+                );
+    }
+
+    @Test
+    void doesNotCheckFieldsWhenFlagDisabled() {
+        ClassDiagramDto actual = ClassDiagramDto.builder()
+                .recordId("r1")
+                .nodes(List.of(node("User", "CLASS", List.of("+ id: Long"), List.of())))
+                .edges(List.of())
+                .build();
+
+        String reference = """
+                class User {
+                  +id: Long
+                  +prenom: String
+                }
+                """;
+
+        ConformanceReportDto report = conformanceService(actual)
+                .generate(1L, null, reference, "Bearer t");
+
+        assertThat(report.getViolations()).isEmpty();
+    }
+
+    @Test
+    void flagsFieldTypeMismatch() {
+        ClassDiagramDto actual = ClassDiagramDto.builder()
+                .recordId("r1")
+                .nodes(List.of(node("User", "CLASS", List.of("+ id: String"), List.of())))
+                .edges(List.of())
+                .build();
+
+        ConformanceReportDto report = conformanceService(actual)
+                .generate(1L, null, "class User {\n+id: Long\n}", null, null, null, true, false, "Bearer t");
+
+        assertThat(report.getViolations())
+                .extracting(ConformanceViolation::getType, ConformanceViolation::getMessage)
+                .contains(org.assertj.core.groups.Tuple.tuple("FIELD_TYPE_MISMATCH",
+                        "Type d'attribut incorrect pour User.id (attendu Long, trouvé String)"));
+    }
+
+    @Test
+    void flagsMethodViolationsWhenCheckMethodsEnabled() {
+        ClassDiagramDto actual = ClassDiagramDto.builder()
+                .recordId("r1")
+                .nodes(List.of(node("User", "CLASS", List.of(), List.of(
+                        "+ getId(): String", "+ ping(): void"
+                ))))
+                .edges(List.of())
+                .build();
+
+        String reference = """
+                class User {
+                  +getId(): Long
+                  +getNom(): String
+                }
+                """;
+
+        ConformanceReportDto report = conformanceService(actual)
+                .generate(1L, null, reference, null, null, null, false, true, "Bearer t");
+
+        assertThat(report.getViolations())
+                .extracting(ConformanceViolation::getType, ConformanceViolation::getMemberName)
+                .containsExactlyInAnyOrder(
+                        org.assertj.core.groups.Tuple.tuple("METHOD_SIGNATURE_MISMATCH", "getId"),
+                        org.assertj.core.groups.Tuple.tuple("METHOD_MISSING", "getNom"),
+                        org.assertj.core.groups.Tuple.tuple("EXTRA_METHOD", "ping")
+                );
+    }
+
+    @Test
+    void skipsMemberCheckWhenReferenceClassHasNoBody() {
+        ClassDiagramDto actual = ClassDiagramDto.builder()
+                .recordId("r1")
+                .nodes(List.of(node("User", "CLASS", List.of("+ region: String"), List.of())))
+                .edges(List.of())
+                .build();
+
+        ConformanceReportDto report = conformanceService(actual)
+                .generate(1L, null, "class User", null, null, null, true, true, "Bearer t");
+
+        assertThat(report.getViolations()).isEmpty();
     }
 
     @Test

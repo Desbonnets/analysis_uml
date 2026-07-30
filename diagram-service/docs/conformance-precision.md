@@ -1,7 +1,8 @@
 # Contrôle de conformité — niveau de précision configurable
 
-Statut : **non implémenté** — spec pour reprise ultérieure. Voir user story 67 dans
-`frontend/USER_STORIES.md`.
+Statut : **`checkFields`/`checkMethods` implémentés** — voir user story 67 dans
+`frontend/USER_STORIES.md`. `checkExceptions` reste bloqué (voir section dédiée plus bas),
+à traiter comme un chantier séparé côté `analysis-service`.
 
 ## Le problème (constaté)
 
@@ -112,3 +113,24 @@ séparée — livrer `checkFields`/`checkMethods` d'abord.
 - `ConformanceServiceTest` : reprendre l'exemple `User` de ce document (attribut
   manquant + attribut en trop) comme fixture, avec le flag activé/désactivé pour
   vérifier la non-régression du comportement par défaut.
+
+## Implémenté (`checkFields` / `checkMethods`)
+
+Décisions prises à l'implémentation, sur les points laissés ouverts ci-dessus :
+
+- **Matching** : les attributs sont matchés par nom simple ; les méthodes par
+  nom + types de paramètres (`getId()` et `getId(Long)` sont deux entrées
+  distinctes), ce qui gère correctement les surcharges les plus courantes sans
+  diff de signature complet.
+- **Réutilisation du format** : pas de nouveaux records de parsing séparés pour
+  le côté "réel" — `PlantUmlParser#parseField`/`parseMethod` sont exposés et
+  réutilisés tels quels sur les chaînes déjà produites par
+  `ClassDiagramService#buildNode` (même convention `"+ nom: Type"` des deux
+  côtés), donc pas de diff sur du texte brut.
+- **Classe de référence sans corps** : `class Foo` sans `{ }` est exemptée du
+  diff de membres même si `checkFields`/`checkMethods` sont actifs — l'absence
+  de corps veut dire "membres non spécifiés", pas "aucun membre attendu".
+  Un corps vide explicite (`class Foo {}`) déclenche en revanche `EXTRA_FIELD`/
+  `EXTRA_METHOD` pour tout membre réel.
+- **`checkExceptions`** : toujours bloqué (voir section dédiée), le toggle
+  frontend correspondant reste désactivé/grisé.

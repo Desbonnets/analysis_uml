@@ -136,6 +136,8 @@ export default function DiagramEditor() {
   const [conformanceTypeFilter, setConformanceTypeFilter] = useState<Set<string>>(new Set())
   const [conformancePackageFilterInput, setConformancePackageFilterInput] = useState('')
   const [conformancePackageFilter, setConformancePackageFilter] = useState('')
+  const [checkFields, setCheckFields] = useState(false)
+  const [checkMethods, setCheckMethods] = useState(false)
   const [savedUmls, setSavedUmls] = useState<SavedUmlDiagram[]>([])
   const [selectedSavedUmlId, setSelectedSavedUmlId] = useState('')
 
@@ -208,6 +210,8 @@ export default function DiagramEditor() {
       filter: conformanceEntitiesOnly ? 'entities' : undefined,
       types: conformanceTypeFilter.size > 0 ? Array.from(conformanceTypeFilter) : undefined,
       packageContains: conformancePackageFilter || undefined,
+      checkFields,
+      checkMethods,
     })
       .then(setConformanceReport)
       .catch(e => setConformanceError((e as Error).message))
@@ -453,6 +457,30 @@ export default function DiagramEditor() {
                   }}
                 />
               </div>
+
+              <div style={{ display: 'flex', flexWrap: 'wrap', alignItems: 'center', gap: 6 }}>
+                <span style={{ fontSize: 11, color: 'var(--fg-3)' }}>Précision :</span>
+                <button
+                  onClick={() => { setConformanceReport(null); setCheckFields(v => !v) }}
+                  style={{ ...tabBtn(checkFields), fontSize: 11, padding: '5px 10px' }}
+                >
+                  Attributs
+                </button>
+                <button
+                  onClick={() => { setConformanceReport(null); setCheckMethods(v => !v) }}
+                  style={{ ...tabBtn(checkMethods), fontSize: 11, padding: '5px 10px' }}
+                >
+                  Méthodes
+                </button>
+                <button
+                  disabled
+                  title="Nécessite d'abord la capture des exceptions/throws côté analysis-service (voir diagram-service/docs/conformance-precision.md)"
+                  style={{ ...tabBtn(false), fontSize: 11, padding: '5px 10px', opacity: 0.4, cursor: 'not-allowed' }}
+                >
+                  Exceptions
+                </button>
+              </div>
+
               <textarea
                 value={conformanceSource}
                 onChange={e => setConformanceSource(e.target.value)}

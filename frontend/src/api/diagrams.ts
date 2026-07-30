@@ -7,6 +7,11 @@ export interface ClassDiagramFilters {
   packageContains?: string
 }
 
+export interface ConformancePrecision {
+  checkFields?: boolean
+  checkMethods?: boolean
+}
+
 function filterParams(recordId: string, filters?: ClassDiagramFilters): URLSearchParams {
   const params = new URLSearchParams({ recordId })
   if (filters?.filter) params.set('filter', filters.filter)
@@ -35,9 +40,12 @@ export function checkConformance(
   projectId: number,
   recordId: string,
   source: string,
-  filters?: ClassDiagramFilters,
+  filters?: ClassDiagramFilters & ConformancePrecision,
 ): Promise<ConformanceReportDto> {
-  return apiRequest<ConformanceReportDto>(`/diagrams/${projectId}/conformance?${filterParams(recordId, filters)}`, {
+  const params = filterParams(recordId, filters)
+  if (filters?.checkFields) params.set('checkFields', 'true')
+  if (filters?.checkMethods) params.set('checkMethods', 'true')
+  return apiRequest<ConformanceReportDto>(`/diagrams/${projectId}/conformance?${params}`, {
     method: 'POST',
     body: JSON.stringify({ source }),
   })
