@@ -322,6 +322,8 @@ export interface TestCoverageReportDto {
   coveredCount: number
   uncoveredCount: number
   coverage: RequirementCoverageDto[]
+  orphanTestCount: number
+  orphanTests: MatchedTestDto[]
 }
 
 export interface MetricPoint {

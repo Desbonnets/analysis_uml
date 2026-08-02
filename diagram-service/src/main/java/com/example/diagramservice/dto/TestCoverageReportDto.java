@@ -18,4 +18,6 @@ public class TestCoverageReportDto {
     private int coveredCount;
     private int uncoveredCount;
     private List<RequirementCoverageDto> coverage;
+    private int orphanTestCount;
+    private List<MatchedTestDto> orphanTests; // tests detected in the code, matched to no requirement
 }

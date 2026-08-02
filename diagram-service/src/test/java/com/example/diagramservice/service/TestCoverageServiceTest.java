@@ -104,6 +104,10 @@ class TestCoverageServiceTest {
         assertThat(cov.getStatus()).isEqualTo("UNCOVERED");
         assertThat(cov.getMatchedTests()).isEmpty();
         assertThat(report.getUncoveredCount()).isEqualTo(1);
+        assertThat(report.getOrphanTestCount()).isEqualTo(1);
+        assertThat(report.getOrphanTests())
+                .extracting(t -> t.getClassName() + "." + t.getMethodName())
+                .containsExactly("OrderServiceTest.createsOrder");
     }
 
     @Test
@@ -115,5 +119,18 @@ class TestCoverageServiceTest {
                 "10. Expired token rejection — reject an expired authentication token", "Bearer t");
 
         assertThat(report.getCoverage().get(0).getStatus()).isEqualTo("UNCOVERED");
+        assertThat(report.getOrphanTestCount()).isZero();
+    }
+
+    @Test
+    void matchedTestsAreNotAlsoReportedAsOrphans() {
+        ClassDef c = classWithMethods("OrderServiceTest", testMethod("createsOrder", "US-67"));
+        when(analysisClient.getRecord(eq(1L), eq("r1"), eq("Bearer t"))).thenReturn(recordWith(c));
+
+        TestCoverageReportDto report = service().generate(1L, "r1",
+                "67. **Choisir un contrôle** — En tant qu'utilisateur, je veux...", "Bearer t");
+
+        assertThat(report.getOrphanTestCount()).isZero();
+        assertThat(report.getOrphanTests()).isEmpty();
     }
 }

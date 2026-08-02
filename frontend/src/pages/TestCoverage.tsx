@@ -228,6 +228,21 @@ export default function TestCoverage() {
                 </div>
               </div>
             )}
+
+            {report && report.orphanTestCount > 0 && (
+              <div className="card" style={{ padding: 16, display: 'flex', flexDirection: 'column', gap: 10 }}>
+                <p style={{ margin: 0, fontSize: 11, color: 'var(--fg-2)' }}>
+                  {report.orphanTestCount} test(s) détecté(s) dans le code sans lien avec une exigence du référentiel
+                  (ni par tag/annotation, ni par mots-clés) — à rattacher à une exigence existante ou à ajouter
+                  au référentiel si l'exigence qu'ils couvrent n'y figure pas encore.
+                </p>
+                <ul style={{ margin: 0, padding: '0 0 0 20px', fontSize: 12, color: 'var(--fg-1)' }}>
+                  {report.orphanTests.map((t, i) => (
+                    <li key={i}>{t.className}.{t.methodName}</li>
+                  ))}
+                </ul>
+              </div>
+            )}
           </div>
         )}
       </div>

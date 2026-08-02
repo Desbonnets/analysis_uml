@@ -36,6 +36,11 @@ import java.util.Set;
  *     title+description words, against a minimum-shared-keywords threshold -&gt; HEURISTIC on
  *     the best-scoring requirement. Below threshold, the test is linked to no requirement.
  *
+ * Tests matched to neither an ID nor a keyword-heuristic requirement are reported separately as
+ * "orphan" tests (present in the code, not linked to any requirement) rather than silently
+ * dropped — useful to spot tests that likely need a `@Tag`/`@group` added, or a requirement
+ * that's missing from the backlog altogether.
+ *
  * v1 scope: proves a test exists and claims to cover a requirement, not that it tests the
  * right behavior — a traceability aid, not a quality guarantee.
  *
@@ -79,6 +84,7 @@ public class TestCoverageService {
 
         Map<String, List<MatchedTestDto>> matchesByRequirement = new LinkedHashMap<>();
         for (String id : requirements.keySet()) matchesByRequirement.put(id, new ArrayList<>());
+        List<MatchedTestDto> orphanTests = new ArrayList<>();
 
         for (DetectedTest test : tests) {
             String storyDigits = digitsOnly(test.storyId());
@@ -111,6 +117,12 @@ public class TestCoverageService {
                         .confidence("HEURISTIC")
                         .matchedKeywords(bestShared)
                         .build());
+            } else {
+                orphanTests.add(MatchedTestDto.builder()
+                        .className(test.className())
+                        .methodName(test.methodName())
+                        .confidence("UNMATCHED")
+                        .build());
             }
         }
 
@@ -137,6 +149,8 @@ public class TestCoverageService {
                 .coveredCount(coveredCount)
                 .uncoveredCount(requirements.size() - coveredCount)
                 .coverage(coverage)
+                .orphanTestCount(orphanTests.size())
+                .orphanTests(orphanTests)
                 .build();
     }
 
