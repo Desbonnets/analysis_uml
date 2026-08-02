@@ -51,6 +51,9 @@ export default function Dashboard() {
   const projectName = (projectId: number | null): string =>
     projectId == null ? 'Aucun projet' : projects.find(p => p.id === projectId)?.name ?? `Projet #${projectId}`
 
+  const diagramCountFor = (projectId: number): number =>
+    diagrams.filter(d => d.projectId === projectId).length
+
   return (
     <div>
       <Header
@@ -123,7 +126,7 @@ export default function Dashboard() {
                       </div>
                     </td>
                     <td><Pill tone="neutral" square>{langShort[p.language] ?? p.language}</Pill></td>
-                    <td className="num">{p.diagramsCount}</td>
+                    <td className="num">{diagramCountFor(p.id)}</td>
                     <td>
                       {p.violationsCount === 0
                         ? <Pill tone="ok" square>0</Pill>
