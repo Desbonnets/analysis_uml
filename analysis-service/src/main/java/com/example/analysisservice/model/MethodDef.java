@@ -14,4 +14,6 @@ public class MethodDef {
     private List<String> parameterTypes;
     private boolean isStatic;
     private boolean isAbstract;
+    private boolean isTest;
+    private String storyId;
 }

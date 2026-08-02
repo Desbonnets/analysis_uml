@@ -16,7 +16,7 @@
 - `src/api/users.ts` — admin CRUD → `/users/**`
 - `src/api/roles.ts` — list roles → `/roles/**`
 - `src/api/analysis.ts` — `uploadAndAnalyze`, `getAnalysisHistory` → `/analysis/**`
-- `src/api/diagrams.ts` — `getClassDiagram`, `getDependencyGraph`, `getPackageDiagram`, `getMetrics` → `/diagrams/**`
+- `src/api/diagrams.ts` — `getClassDiagram`, `getDependencyGraph`, `getPackageDiagram`, `getMetrics`, `checkConformance`, `checkTestCoverage` → `/diagrams/**`
 - Auth state persisted in `localStorage` via `AuthContext` (keys: `auth_token`, `auth_user`)
 
 **Still mocked via JSON files in `src/data/`:**
@@ -32,9 +32,11 @@
 
 ```
 /login, /register                              → public
-/dashboard, /projects, /diagrams, /analysis, /ai, /settings  → ProtectedRoute (token required)
+/dashboard, /projects, /diagrams, /conformance, /test-coverage, /analysis, /ai, /settings  → ProtectedRoute (token required)
 /diagrams                                      → DiagramsList (sélecteur projet + historique analyses)
-/diagrams/:projectId/:recordId                 → DiagramEditor (3 onglets: Classe/Dépendances/Packages)
+/diagrams/:projectId/:recordId                 → DiagramEditor (3 onglets: Classe/Dépendances/Packages — visualisation uniquement)
+/conformance                                   → Conformance (sélecteur projet+analyse intégré, pas de :recordId dans l'URL)
+/test-coverage                                 → TestCoverage (idem)
 /admin/users                                   → AdminRoute (role === 'admin', redirects to /dashboard otherwise)
 ```
 
@@ -44,6 +46,13 @@
 1. `DiagramsList` → sélectionne un projet → appelle `GET /analysis/{projectId}/history`
 2. Clic sur une ligne → navigue vers `/diagrams/{projectId}/{recordId}`
 3. `DiagramEditor` → appelle diagram-service à la volée → affiche SVG avec 3 onglets
+
+**Conformité / Couverture des tests** : pages dédiées dans la sidebar, volontairement séparées de
+`DiagramEditor` (qui ne fait que de la visualisation) — chacune a son propre sélecteur
+projet → historique d'analyses (même pattern que `DiagramsList`, mais sans navigation : la ligne
+sélectionnée dans le tableau révèle directement le formulaire de vérification sur la même page).
+`Conformance.tsx` et `TestCoverage.tsx` partagent le style de bouton toggle
+`components/ui/toggleBtnStyle.ts` (extrait de l'ancien `tabBtn` local à `DiagramEditor`).
 
 ## Component layers
 

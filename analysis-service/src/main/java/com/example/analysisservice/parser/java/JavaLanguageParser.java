@@ -243,7 +243,50 @@ public class JavaLanguageParser implements LanguageParser {
                     .parameterTypes(extractParamTypes(ctx.formalParameters()))
                     .isStatic(hasModifier(mods, "static"))
                     .isAbstract(hasModifier(mods, "abstract"))
+                    .isTest(hasTestAnnotation(mods))
+                    .storyId(extractStoryTag(mods))
                     .build();
+        }
+
+        // JUnit 4/5: @Test / @org.junit.Test / @org.junit.jupiter.api.Test
+        private boolean hasTestAnnotation(List<JavaStructureParser.ModifierContext> mods) {
+            for (var m : mods) {
+                if (m.annotation() != null) {
+                    String qn = m.annotation().qualifiedName().getText();
+                    if (qn.equals("Test") || qn.endsWith(".junit.Test") || qn.endsWith(".jupiter.api.Test")) return true;
+                }
+            }
+            return false;
+        }
+
+        // JUnit 5: @Tag("US-67") or @Tag(value = "US-67") — the requirement ID a test declares it covers.
+        private String extractStoryTag(List<JavaStructureParser.ModifierContext> mods) {
+            for (var m : mods) {
+                var ann = m.annotation();
+                if (ann == null || !ann.qualifiedName().getText().equals("Tag")) continue;
+                var args = ann.annotationArgs();
+                if (args == null) continue;
+
+                if (args.elementValue() != null) {
+                    String v = elementValueText(args.elementValue());
+                    if (v != null) return v;
+                }
+                for (var pair : args.elementValuePair()) {
+                    if (pair.IDENTIFIER().getText().equals("value")) {
+                        String v = elementValueText(pair.elementValue());
+                        if (v != null) return v;
+                    }
+                }
+            }
+            return null;
+        }
+
+        private String elementValueText(JavaStructureParser.ElementValueContext ev) {
+            if (ev.exprTokens() == null) return null;
+            String raw = ev.exprTokens().getText();
+            return raw.length() >= 2 && raw.startsWith("\"") && raw.endsWith("\"")
+                    ? raw.substring(1, raw.length() - 1)
+                    : raw;
         }
 
         private MethodDef buildInterfaceMethod(

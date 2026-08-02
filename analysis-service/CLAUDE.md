@@ -45,3 +45,17 @@ Every parser emits `ClassDef` (feeds the class/dependency diagrams) inside a `Co
 - **Class diagram** (`filter=entities`, `types=`, `packageContains=`): reliable everywhere except the `abstract_class` type filter, which only ever populates from Java, and `filter=entities`, which is empty for JS/TS/C/C++ projects (no ORM convention detected).
 - **Package diagram**: only meaningful for Java, PHP, and (single-namespace) C++. Python/TS/JS/C projects render as one `(default)` package containing everything — not a real limitation of the diagram, a gap in the parsers not capturing module/directory structure.
 - **Dependency graph**: driven by `ClassDef.dependencies`, which is only as accurate as each parser's type extraction (weakest for PHP fields and untyped JS).
+
+## Test detection (`MethodDef.isTest` / `storyId`)
+
+Used by diagram-service's test-coverage check (see `diagram-service/CLAUDE.md`) to link detected
+tests to a user-supplied requirements backlog. Detected today for Java and PHP only — Python/JS/TS/C/C++
+are not covered yet (extend `PythonLanguageParser`/`JsRegexParser` the same way if needed later):
+
+| Language | `isTest` when... | `storyId` from... |
+|---|---|---|
+| Java | `@Test` (JUnit 4 `org.junit.Test` or JUnit 5 `org.junit.jupiter.api.Test`), any import form | `@Tag("US-67")` / `@Tag(value = "US-67")` (JUnit 5) |
+| PHP | method named `test*`, or docblock `@test`, inside a class `extends TestCase` | docblock `@group US-67` |
+
+`storyId` is free text — the test-coverage matcher (diagram-service) extracts digits from it and
+compares against a requirement's numeric ID, so `US-67`, `67`, or `#67` are all equivalent.

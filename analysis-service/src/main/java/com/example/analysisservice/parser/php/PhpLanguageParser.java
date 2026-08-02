@@ -53,6 +53,13 @@ public class PhpLanguageParser implements LanguageParser {
             Pattern.CASE_INSENSITIVE
     );
 
+    // PHPUnit: extends TestCase, with or without a namespace prefix (\PHPUnit\Framework\TestCase)
+    private static final Pattern TESTCASE_SUPERCLASS_RE = Pattern.compile("(?:^|\\\\)TestCase$");
+    // PHPUnit docblock: /** @test */ right above a method not named test*
+    private static final Pattern DOCBLOCK_TEST_TAG_RE = Pattern.compile("@test\\b", Pattern.CASE_INSENSITIVE);
+    // Docblock: @group US-67 — the requirement ID a test declares it covers
+    private static final Pattern DOCBLOCK_GROUP_RE = Pattern.compile("@group\\s+([\\w-]+)");
+
     // PHP 8 attribute with explicit targetEntity:
     //   #[ORM\ManyToOne(targetEntity: Category::class, ...)]
     private static final Pattern ORM_ATTR_TARGET_RE = Pattern.compile(
@@ -137,7 +144,8 @@ public class PhpLanguageParser implements LanguageParser {
             String superClass = m.group(2);
             List<String> ifaces = parseList(m.group(3));
             String body = extractBody(source, m.end() - 1);
-            List<MethodDef> methods = extractMethods(body);
+            boolean extendsTestCase = superClass != null && TESTCASE_SUPERCLASS_RE.matcher(superClass).find();
+            List<MethodDef> methods = extractMethods(body, extendsTestCase);
             List<FieldDef> fields = extractProperties(body);
             List<OrmRelation> ormRelations = extractOrmRelations(body);
 
@@ -178,7 +186,7 @@ public class PhpLanguageParser implements LanguageParser {
                     .type(ClassType.INTERFACE)
                     .visibility("public")
                     .interfaces(extended)
-                    .methods(extractMethods(body))
+                    .methods(extractMethods(body, false))
                     .build());
         }
     }
@@ -188,7 +196,7 @@ public class PhpLanguageParser implements LanguageParser {
         while (m.find()) {
             String name = m.group(1);
             String body = extractBody(source, m.end() - 1);
-            List<MethodDef> methods = extractMethods(body);
+            List<MethodDef> methods = extractMethods(body, false);
             List<FieldDef> fields = extractProperties(body);
 
             out.add(ClassDef.builder()
@@ -208,7 +216,7 @@ public class PhpLanguageParser implements LanguageParser {
             String name = m.group(1);
             List<String> ifaces = parseList(m.group(2));
             String body = extractBody(source, m.end() - 1);
-            List<MethodDef> methods = extractMethods(body);
+            List<MethodDef> methods = extractMethods(body, false);
 
             out.add(ClassDef.builder()
                     .name(name)
@@ -271,7 +279,7 @@ public class PhpLanguageParser implements LanguageParser {
         };
     }
 
-    private List<MethodDef> extractMethods(String body) {
+    private List<MethodDef> extractMethods(String body, boolean inTestClass) {
         List<MethodDef> methods = new ArrayList<>();
         Matcher m = METHOD_RE.matcher(body);
         while (m.find()) {
@@ -281,6 +289,19 @@ public class PhpLanguageParser implements LanguageParser {
             String name = m.group(4);
             List<String> params = parsePhpParamTypes(m.group(5));
 
+            // Same "slice back to the previous closing brace" idiom used for #[ORM\Entity] at
+            // file level, applied here to read the docblock/attributes right above this method.
+            int lastBrace = body.lastIndexOf('}', m.start() - 1);
+            String preMethod = body.substring(lastBrace >= 0 ? lastBrace + 1 : 0, m.start());
+
+            boolean isTest = inTestClass
+                    && (name.startsWith("test") || DOCBLOCK_TEST_TAG_RE.matcher(preMethod).find());
+            String storyId = null;
+            if (isTest) {
+                Matcher groupMatcher = DOCBLOCK_GROUP_RE.matcher(preMethod);
+                if (groupMatcher.find()) storyId = groupMatcher.group(1);
+            }
+
             methods.add(MethodDef.builder()
                     .name(name)
                     .returnType("void")
@@ -288,6 +309,8 @@ public class PhpLanguageParser implements LanguageParser {
                     .parameterTypes(params)
                     .isStatic(isStatic)
                     .isAbstract(isAbstract)
+                    .isTest(isTest)
+                    .storyId(storyId)
                     .build());
         }
         return methods;

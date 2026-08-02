@@ -1,6 +1,9 @@
 # Couverture des tests vs user stories / cas d'usage — Architecture & Roadmap
 
-Statut : **non implémenté** — spec pour reprise ultérieure.
+Statut : **implémenté pour Java + PHP** — voir user story 68 dans `frontend/USER_STORIES.md` et
+la section "Implémenté" en bas de ce document pour les décisions prises. Python/JS/TS/C/C++
+restent à faire (détection "ceci est un test" absente pour ces langages, voir
+`analysis-service/CLAUDE.md`).
 
 ## Contexte
 
@@ -152,3 +155,39 @@ story « Gérer les erreurs d'analyse »). Un appel LLM/embedding améliorerait 
 rappel mais introduit une dépendance externe et un coût — à évaluer une fois le v1
 mots-clés en place et ses limites mesurées sur des cas réels, pas à décider
 maintenant.
+
+---
+
+## Implémenté (Java + PHP)
+
+Décisions prises à l'implémentation, sur les points laissés ouverts ci-dessus :
+
+- **Format d'entrée (point 1)** : markdown à puces numérotées retenu, `RequirementsParser`
+  (`diagram-service/requirements/`) — une exigence par ligne, `"N. **Titre** — description"`
+  (gras et séparateur `—`/`-` optionnels), avec le même retrait du marqueur de statut de tête
+  (emoji) que celui déjà utilisé dans `USER_STORIES.md`, pour pouvoir coller ce fichier
+  directement. Pas de format multi-ligne par exigence en v1 (limitation documentée).
+- **Détection "ceci est un test" (section 1)** : Java (`@Test` JUnit 4/5, toutes formes
+  d'import) et PHP (méthode `test*` ou docblock `@test`, dans une classe `extends TestCase`)
+  implémentés, sur le modèle exact de `hasEntityAnnotation`/`ORM_ENTITY_RE` déjà en place pour
+  `ClassDef.entity`. Python/JS/TS/C/C++ non couverts — à ajouter plus tard de la même façon.
+- **ID d'exigence (section 1)** : `MethodDef.isTest` (boolean) + `MethodDef.storyId` (String,
+  nullable), même principe que `ClassDef.entity`. Java : `@Tag("US-67")` /
+  `@Tag(value = "US-67")` (JUnit 5). PHP : docblock `@group US-67`. `storyId` est du texte
+  libre — le matching côté `TestCoverageService` extrait les chiffres et les compare à l'ID
+  numérique de l'exigence, donc `US-67`/`67`/`#67` sont équivalents.
+- **Entrée référentiel (section 2)** : pas de `SavedRequirementsList` en v1 — on colle/importe
+  le texte à chaque vérification, comme l'était le contrôle de conformité avant l'ajout de
+  `SavedUmlDiagram`. Persistance/réutilisation à ajouter plus tard si le besoin se confirme.
+- **Service de comparaison (section 3)** : `TestCoverageService` récupère l'`AnalysisRecord`
+  complet via `AnalysisClient.getRecord(...)` directement (pas via `ClassDiagramService`, qui
+  aplatit `MethodDef` en chaînes formatées et perdrait `isTest`/`storyId`).
+- **Seuil de similarité (point 2)** : recoupement par mots-clés simple — au moins 2 mots
+  partagés (camelCase/snake_case découpé, mots vides filtrés), ou un seul mot partagé s'il fait
+  au moins 6 caractères. Constantes `MIN_SHARED_KEYWORDS`/`MIN_SINGLE_KEYWORD_LENGTH` dans
+  `TestCoverageService`, non calées sur un jeu de test réel — à ajuster si le rapport s'avère
+  trop bruyant ou trop silencieux en pratique.
+- **Portée v1 (point 3)** : le texte d'aide de l'onglet "Couverture des tests" rappelle
+  explicitement que ceci prouve qu'un test existe et prétend couvrir l'exigence, pas qu'il
+  teste le bon comportement.
+- **Matching sémantique (point 4)** : toujours pas fait, cf. ci-dessus — pas de changement.

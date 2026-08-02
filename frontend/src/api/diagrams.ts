@@ -1,5 +1,5 @@
 import { apiRequest } from './_request'
-import type { ClassDiagramDto, ConformanceReportDto, DependencyGraphDto, MetricsDto, PackageDiagramDto, PlantUmlExportDto } from '../types'
+import type { ClassDiagramDto, ConformanceReportDto, DependencyGraphDto, MetricsDto, PackageDiagramDto, PlantUmlExportDto, TestCoverageReportDto } from '../types'
 
 export interface ClassDiagramFilters {
   filter?: string
@@ -48,6 +48,17 @@ export function checkConformance(
   return apiRequest<ConformanceReportDto>(`/diagrams/${projectId}/conformance?${params}`, {
     method: 'POST',
     body: JSON.stringify({ source }),
+  })
+}
+
+export function checkTestCoverage(
+  projectId: number,
+  recordId: string,
+  requirements: string,
+): Promise<TestCoverageReportDto> {
+  return apiRequest<TestCoverageReportDto>(`/diagrams/${projectId}/test-coverage?recordId=${recordId}`, {
+    method: 'POST',
+    body: JSON.stringify({ requirements }),
   })
 }
 

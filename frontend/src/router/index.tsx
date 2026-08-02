@@ -9,6 +9,8 @@ import Projects from '../pages/Projects'
 import ProjectDetail from '../pages/ProjectDetail'
 import DiagramsList from '../pages/DiagramsList'
 import DiagramEditor from '../pages/DiagramEditor'
+import Conformance from '../pages/Conformance'
+import TestCoverage from '../pages/TestCoverage'
 import SavedUmls from '../pages/SavedUmls'
 import SavedUmlEditor from '../pages/SavedUmlEditor'
 import Analysis from '../pages/Analysis'
@@ -32,6 +34,8 @@ export const router = createBrowserRouter([
           { path: 'projects/:id', element: <ProjectDetail /> },
           { path: 'diagrams', element: <DiagramsList /> },
           { path: 'diagrams/:projectId/:recordId', element: <DiagramEditor /> },
+          { path: 'conformance', element: <Conformance /> },
+          { path: 'test-coverage', element: <TestCoverage /> },
           { path: 'saved-umls', element: <SavedUmls /> },
           { path: 'saved-umls/new', element: <SavedUmlEditor /> },
           { path: 'saved-umls/:id', element: <SavedUmlEditor /> },
