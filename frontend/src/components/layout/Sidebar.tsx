@@ -1,5 +1,5 @@
 import { NavLink, useNavigate } from 'react-router-dom'
-import { LayoutDashboard, FolderOpen, GitBranch, FileCode2, AlertTriangle, Sparkles, Settings, LogOut, Users } from 'lucide-react'
+import { LayoutDashboard, FolderOpen, GitBranch, FileCode2, ShieldCheck, ListChecks, AlertTriangle, Sparkles, Settings, LogOut, Users } from 'lucide-react'
 import Logo from '../ui/Logo'
 import Avatar from '../ui/Avatar'
 import { useAuth } from '../../context/AuthContext'
@@ -9,6 +9,8 @@ const nav = [
   { to: '/projects',  icon: FolderOpen,       label: 'Projets',          count: 12 },
   { to: '/diagrams',  icon: GitBranch,         label: 'Canvas' },
   { to: '/saved-umls', icon: FileCode2,       label: 'UML enregistrés' },
+  { to: '/conformance', icon: ShieldCheck,    label: 'Conformité' },
+  { to: '/test-coverage', icon: ListChecks,   label: 'Couverture des tests' },
   { to: '/analysis',  icon: AlertTriangle,     label: 'Issues',           count: 7 },
   { to: '/ai',        icon: Sparkles,          label: 'Assistant IA' },
 ]

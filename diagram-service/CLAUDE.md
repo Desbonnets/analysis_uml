@@ -89,5 +89,7 @@ right behavior — a traceability aid, not a quality guarantee. Test detection t
 Java (`@Test` + `@Tag`) and PHP (`test*`/`@test` in a `TestCase` subclass + `@group`) — see
 `analysis-service/CLAUDE.md`, "Test detection".
 
-Frontend: "Couverture des tests" tab in `DiagramEditor`, same paste/import-then-verify UX as the
-Conformité tab (no saved-backlog reuse yet, unlike `SavedUmlDiagram` for PlantUML references).
+Frontend: dedicated "Couverture des tests" page (`/test-coverage`, sidebar entry), not a
+`DiagramEditor` tab — same paste/import-then-verify UX as the Conformité page (`/conformance`,
+also its own dedicated page, not a tab), each with its own project/analysis selector. No
+saved-backlog reuse yet, unlike `SavedUmlDiagram` for PlantUML references.

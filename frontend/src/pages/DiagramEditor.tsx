@@ -2,8 +2,6 @@ import { useEffect, useState } from 'react'
 import { useParams, Link } from 'react-router-dom'
 import { ArrowLeft, Download, ZoomIn, ZoomOut, Maximize2 } from 'lucide-react'
 import {
-  checkConformance,
-  checkTestCoverage,
   exportClassDiagram,
   exportDependencyGraph,
   exportPackageDiagram,
@@ -11,9 +9,7 @@ import {
   getDependencyGraph,
   getPackageDiagram,
 } from '../api/diagrams'
-import { getSavedUmlDiagram, listSavedUmlDiagrams } from '../api/savedUmls'
-import type { ClassDiagramDto, ConformanceReportDto, DependencyGraphDto, DiagramEdge, PackageDiagramDto, PackageNode, SavedUmlDiagram, TestCoverageReportDto } from '../types'
-import Pill from '../components/ui/Pill'
+import type { ClassDiagramDto, DependencyGraphDto, DiagramEdge, PackageDiagramDto, PackageNode } from '../types'
 import ClassDiagramCanvas from '../components/diagram/ClassDiagramCanvas'
 
 // ─── Types internes ────────────────────────────────────────────────────────────
@@ -113,7 +109,7 @@ const tabBtn = (active: boolean): React.CSSProperties => ({
 
 // ─── Page principale ──────────────────────────────────────────────────────────
 
-type Tab = 'class' | 'dependencies' | 'packages' | 'conformance' | 'test-coverage'
+type Tab = 'class' | 'dependencies' | 'packages'
 
 export default function DiagramEditor() {
   const { projectId, recordId } = useParams<{ projectId: string; recordId: string }>()
@@ -128,24 +124,6 @@ export default function DiagramEditor() {
   const [typeFilter, setTypeFilter] = useState<Set<string>>(new Set())
   const [packageFilterInput, setPackageFilterInput] = useState('')
   const [packageFilter, setPackageFilter] = useState('')
-
-  const [conformanceSource, setConformanceSource] = useState('')
-  const [conformanceReport, setConformanceReport] = useState<ConformanceReportDto | null>(null)
-  const [conformanceChecking, setConformanceChecking] = useState(false)
-  const [conformanceError, setConformanceError] = useState<string | null>(null)
-  const [conformanceEntitiesOnly, setConformanceEntitiesOnly] = useState(false)
-  const [conformanceTypeFilter, setConformanceTypeFilter] = useState<Set<string>>(new Set())
-  const [conformancePackageFilterInput, setConformancePackageFilterInput] = useState('')
-  const [conformancePackageFilter, setConformancePackageFilter] = useState('')
-  const [checkFields, setCheckFields] = useState(false)
-  const [checkMethods, setCheckMethods] = useState(false)
-
-  const [testCoverageRequirements, setTestCoverageRequirements] = useState('')
-  const [testCoverageReport, setTestCoverageReport] = useState<TestCoverageReportDto | null>(null)
-  const [testCoverageChecking, setTestCoverageChecking] = useState(false)
-  const [testCoverageError, setTestCoverageError] = useState<string | null>(null)
-  const [savedUmls, setSavedUmls] = useState<SavedUmlDiagram[]>([])
-  const [selectedSavedUmlId, setSelectedSavedUmlId] = useState('')
 
   const [exporting, setExporting] = useState(false)
   const [exportError, setExportError] = useState<string | null>(null)
@@ -188,59 +166,6 @@ export default function DiagramEditor() {
     setClassDiagram(null)
   }, [entitiesOnly, typeFilter, packageFilter])
 
-  useEffect(() => {
-    if (tab !== 'conformance' || savedUmls.length > 0) return
-    listSavedUmlDiagrams().then(setSavedUmls).catch(() => {})
-  }, [tab, savedUmls.length])
-
-  function handlePlantUmlFile(file: File | undefined) {
-    if (!file) return
-    const reader = new FileReader()
-    reader.onload = () => setConformanceSource(String(reader.result ?? ''))
-    reader.readAsText(file)
-  }
-
-  function handleRequirementsFile(file: File | undefined) {
-    if (!file) return
-    const reader = new FileReader()
-    reader.onload = () => setTestCoverageRequirements(String(reader.result ?? ''))
-    reader.readAsText(file)
-  }
-
-  function loadSavedUml(id: string) {
-    setSelectedSavedUmlId(id)
-    if (!id) return
-    getSavedUmlDiagram(Number(id))
-      .then(d => setConformanceSource(d.plantUmlSource))
-      .catch(e => setConformanceError((e as Error).message))
-  }
-
-  function runConformanceCheck() {
-    if (!projectId || !recordId || !conformanceSource.trim()) return
-    setConformanceChecking(true)
-    setConformanceError(null)
-    checkConformance(Number(projectId), recordId, conformanceSource, {
-      filter: conformanceEntitiesOnly ? 'entities' : undefined,
-      types: conformanceTypeFilter.size > 0 ? Array.from(conformanceTypeFilter) : undefined,
-      packageContains: conformancePackageFilter || undefined,
-      checkFields,
-      checkMethods,
-    })
-      .then(setConformanceReport)
-      .catch(e => setConformanceError((e as Error).message))
-      .finally(() => setConformanceChecking(false))
-  }
-
-  function runTestCoverageCheck() {
-    if (!projectId || !recordId || !testCoverageRequirements.trim()) return
-    setTestCoverageChecking(true)
-    setTestCoverageError(null)
-    checkTestCoverage(Number(projectId), recordId, testCoverageRequirements)
-      .then(setTestCoverageReport)
-      .catch(e => setTestCoverageError((e as Error).message))
-      .finally(() => setTestCoverageChecking(false))
-  }
-
   function downloadPlantUml(source: string, filename: string) {
     const blob = new Blob([source], { type: 'text/plain;charset=utf-8' })
     const url = URL.createObjectURL(blob)
@@ -254,7 +179,7 @@ export default function DiagramEditor() {
   }
 
   function handleExport() {
-    if (!projectId || !recordId || tab === 'conformance') return
+    if (!projectId || !recordId) return
     setExporting(true)
     setExportError(null)
     const pid = Number(projectId)
@@ -276,16 +201,6 @@ export default function DiagramEditor() {
 
   function toggleType(t: string) {
     setTypeFilter(prev => {
-      const next = new Set(prev)
-      if (next.has(t)) next.delete(t)
-      else next.add(t)
-      return next
-    })
-  }
-
-  function toggleConformanceType(t: string) {
-    setConformanceReport(null)
-    setConformanceTypeFilter(prev => {
       const next = new Set(prev)
       if (next.has(t)) next.delete(t)
       else next.add(t)
@@ -316,15 +231,7 @@ export default function DiagramEditor() {
               Analyse {recordId}
             </h2>
             <p style={{ margin: 0, fontSize: 11, color: 'var(--fg-2)' }}>
-              {tab === 'conformance'
-                ? (conformanceReport
-                    ? `${conformanceReport.errorCount} erreur(s) · ${conformanceReport.infoCount} info(s)`
-                    : 'Diagramme de référence non vérifié')
-                : tab === 'test-coverage'
-                ? (testCoverageReport
-                    ? `${testCoverageReport.coveredCount}/${testCoverageReport.requirementCount} exigence(s) couverte(s)`
-                    : 'Référentiel d\'exigences non vérifié')
-                : `${nodeCount} ${tab === 'packages' ? 'packages' : 'classes'} · ${edgeCount} relations`}
+              {`${nodeCount} ${tab === 'packages' ? 'packages' : 'classes'} · ${edgeCount} relations`}
             </p>
           </div>
         </div>
@@ -332,9 +239,9 @@ export default function DiagramEditor() {
         <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
           {/* Tabs */}
           <div style={{ display: 'flex', gap: 4, marginRight: 12 }}>
-            {(['class', 'dependencies', 'packages', 'conformance', 'test-coverage'] as Tab[]).map(t => (
+            {(['class', 'dependencies', 'packages'] as Tab[]).map(t => (
               <button key={t} style={tabBtn(tab === t)} onClick={() => setTab(t)}>
-                {t === 'class' ? 'Classe UML' : t === 'dependencies' ? 'Dépendances' : t === 'packages' ? 'Packages' : t === 'conformance' ? 'Conformité' : 'Couverture des tests'}
+                {t === 'class' ? 'Classe UML' : t === 'dependencies' ? 'Dépendances' : 'Packages'}
               </button>
             ))}
           </div>
@@ -384,35 +291,31 @@ export default function DiagramEditor() {
           )}
 
           {/* Zoom */}
-          {tab !== 'conformance' && tab !== 'test-coverage' && (
-            <>
-              <button style={toolbarBtn} onClick={() => setZoom(z => Math.max(0.25, z - 0.1))}>
-                <ZoomOut size={14} />
-              </button>
-              <span className="mono" style={{ fontSize: 11, color: 'var(--fg-1)', width: 40, textAlign: 'center' }}>
-                {Math.round(zoom * 100)}%
-              </span>
-              <button style={toolbarBtn} onClick={() => setZoom(z => Math.min(3, z + 0.1))}>
-                <ZoomIn size={14} />
-              </button>
-              <button style={toolbarBtn} onClick={() => setZoom(1)}>
-                <Maximize2 size={14} />
-              </button>
-              <button
-                className="btn btn-primary btn-sm"
-                style={{ marginLeft: 4 }}
-                disabled={exporting || !currentData}
-                onClick={handleExport}
-                title="Exporter ce diagramme au format PlantUML (.puml)"
-              >
-                <Download size={13} /> {exporting ? 'Export…' : 'Exporter'}
-              </button>
-            </>
-          )}
+          <button style={toolbarBtn} onClick={() => setZoom(z => Math.max(0.25, z - 0.1))}>
+            <ZoomOut size={14} />
+          </button>
+          <span className="mono" style={{ fontSize: 11, color: 'var(--fg-1)', width: 40, textAlign: 'center' }}>
+            {Math.round(zoom * 100)}%
+          </span>
+          <button style={toolbarBtn} onClick={() => setZoom(z => Math.min(3, z + 0.1))}>
+            <ZoomIn size={14} />
+          </button>
+          <button style={toolbarBtn} onClick={() => setZoom(1)}>
+            <Maximize2 size={14} />
+          </button>
+          <button
+            className="btn btn-primary btn-sm"
+            style={{ marginLeft: 4 }}
+            disabled={exporting || !currentData}
+            onClick={handleExport}
+            title="Exporter ce diagramme au format PlantUML (.puml)"
+          >
+            <Download size={13} /> {exporting ? 'Export…' : 'Exporter'}
+          </button>
         </div>
       </div>
 
-      {exportError && tab !== 'conformance' && tab !== 'test-coverage' && (
+      {exportError && (
         <div style={{ padding: '8px 20px', background: 'var(--bg-1)', borderBottom: '1px solid var(--line-1)' }}>
           <p style={{ margin: 0, fontSize: 12, color: 'var(--bad)' }}>{exportError}</p>
         </div>
@@ -420,239 +323,6 @@ export default function DiagramEditor() {
 
       {/* Canvas */}
       <div className="canvas-bg" style={{ flex: 1, overflow: 'auto' }}>
-        {tab === 'conformance' ? (
-          <div style={{ maxWidth: 720, margin: '0 auto', padding: 24, display: 'flex', flexDirection: 'column', gap: 16 }}>
-            <div className="card" style={{ padding: 16, display: 'flex', flexDirection: 'column', gap: 10 }}>
-              <p style={{ margin: 0, fontSize: 12, color: 'var(--fg-2)' }}>
-                Colle un diagramme de référence au format PlantUML (ou importe un fichier .puml) décrivant
-                l'architecture attendue. L'application le compare au code réellement analysé et liste les écarts.
-              </p>
-              {savedUmls.length > 0 && (
-                <select
-                  value={selectedSavedUmlId}
-                  onChange={e => loadSavedUml(e.target.value)}
-                  style={{
-                    fontSize: 12, padding: '7px 10px', borderRadius: 6,
-                    border: '1px solid var(--line-2)', background: 'var(--bg-2)', color: 'var(--fg-1)',
-                  }}
-                >
-                  <option value="">— Charger un UML enregistré —</option>
-                  {savedUmls.map(d => (
-                    <option key={d.id} value={d.id}>{d.name}</option>
-                  ))}
-                </select>
-              )}
-
-              <div style={{ display: 'flex', flexWrap: 'wrap', alignItems: 'center', gap: 6 }}>
-                <span style={{ fontSize: 11, color: 'var(--fg-3)' }}>Classes vérifiées :</span>
-                <button
-                  onClick={() => { setConformanceReport(null); setConformanceEntitiesOnly(v => !v) }}
-                  style={{ ...tabBtn(conformanceEntitiesOnly), fontSize: 11, padding: '5px 10px' }}
-                >
-                  Entités seules (BDD)
-                </button>
-
-                {([
-                  ['class', 'Classes'],
-                  ['abstract_class', 'Abstraites'],
-                  ['interface', 'Interfaces'],
-                  ['enum', 'Enums'],
-                ] as const).map(([value, label]) => (
-                  <button
-                    key={value}
-                    onClick={() => toggleConformanceType(value)}
-                    style={{ ...tabBtn(conformanceTypeFilter.has(value)), fontSize: 11, padding: '5px 10px' }}
-                  >
-                    {label}
-                  </button>
-                ))}
-
-                <input
-                  value={conformancePackageFilterInput}
-                  onChange={e => setConformancePackageFilterInput(e.target.value)}
-                  onKeyDown={e => { if (e.key === 'Enter') { setConformanceReport(null); setConformancePackageFilter(conformancePackageFilterInput.trim()) } }}
-                  onBlur={() => { setConformanceReport(null); setConformancePackageFilter(conformancePackageFilterInput.trim()) }}
-                  placeholder="Filtrer par package…"
-                  style={{
-                    fontSize: 11,
-                    padding: '5px 10px',
-                    borderRadius: 6,
-                    border: '1px solid var(--line-2)',
-                    background: 'var(--bg-2)',
-                    color: 'var(--fg-1)',
-                    width: 140,
-                  }}
-                />
-              </div>
-
-              <div style={{ display: 'flex', flexWrap: 'wrap', alignItems: 'center', gap: 6 }}>
-                <span style={{ fontSize: 11, color: 'var(--fg-3)' }}>Précision :</span>
-                <button
-                  onClick={() => { setConformanceReport(null); setCheckFields(v => !v) }}
-                  style={{ ...tabBtn(checkFields), fontSize: 11, padding: '5px 10px' }}
-                >
-                  Attributs
-                </button>
-                <button
-                  onClick={() => { setConformanceReport(null); setCheckMethods(v => !v) }}
-                  style={{ ...tabBtn(checkMethods), fontSize: 11, padding: '5px 10px' }}
-                >
-                  Méthodes
-                </button>
-                <button
-                  disabled
-                  title="Nécessite d'abord la capture des exceptions/throws côté analysis-service (voir diagram-service/docs/conformance-precision.md)"
-                  style={{ ...tabBtn(false), fontSize: 11, padding: '5px 10px', opacity: 0.4, cursor: 'not-allowed' }}
-                >
-                  Exceptions
-                </button>
-              </div>
-
-              <textarea
-                value={conformanceSource}
-                onChange={e => setConformanceSource(e.target.value)}
-                placeholder={'class Order\ninterface Shippable\nOrder ..|> Shippable'}
-                rows={10}
-                style={{
-                  fontFamily: 'var(--font-mono)',
-                  fontSize: 12,
-                  padding: 10,
-                  borderRadius: 6,
-                  border: '1px solid var(--line-2)',
-                  background: 'var(--bg-2)',
-                  color: 'var(--fg-1)',
-                  resize: 'vertical',
-                }}
-              />
-              <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-                <input
-                  type="file"
-                  accept=".puml,.txt,.plantuml"
-                  onChange={e => handlePlantUmlFile(e.target.files?.[0])}
-                  style={{ fontSize: 12, color: 'var(--fg-2)' }}
-                />
-                <button
-                  className="btn btn-primary btn-sm"
-                  disabled={conformanceChecking || !conformanceSource.trim()}
-                  onClick={runConformanceCheck}
-                  style={{ marginLeft: 'auto' }}
-                >
-                  {conformanceChecking ? 'Vérification…' : 'Vérifier'}
-                </button>
-              </div>
-            </div>
-
-            {conformanceError && (
-              <div className="card" style={{ borderColor: 'var(--bad)', padding: 14 }}>
-                <p style={{ margin: 0, fontSize: 12, color: 'var(--bad)' }}>{conformanceError}</p>
-              </div>
-            )}
-
-            {conformanceReport && (
-              <div className="card" style={{ padding: 16, display: 'flex', flexDirection: 'column', gap: 10 }}>
-                <p style={{ margin: 0, fontSize: 11, color: 'var(--fg-2)' }}>
-                  {conformanceReport.expectedClassCount} classe(s) attendue(s) · {conformanceReport.actualClassCount} classe(s) réelle(s)
-                </p>
-                {conformanceReport.violations.length === 0 ? (
-                  <p style={{ margin: 0, fontSize: 12, color: 'var(--ok)' }}>Le code respecte le diagramme de référence.</p>
-                ) : (
-                  <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
-                    {conformanceReport.violations.map((v, i) => (
-                      <div key={i} style={{ display: 'flex', alignItems: 'baseline', gap: 8 }}>
-                        <Pill tone={v.severity === 'ERROR' ? 'bad' : 'info'}>{v.type}</Pill>
-                        <span style={{ fontSize: 12, color: 'var(--fg-1)' }}>{v.message}</span>
-                      </div>
-                    ))}
-                  </div>
-                )}
-              </div>
-            )}
-          </div>
-        ) : tab === 'test-coverage' ? (
-          <div style={{ maxWidth: 720, margin: '0 auto', padding: 24, display: 'flex', flexDirection: 'column', gap: 16 }}>
-            <div className="card" style={{ padding: 16, display: 'flex', flexDirection: 'column', gap: 10 }}>
-              <p style={{ margin: 0, fontSize: 12, color: 'var(--fg-2)' }}>
-                Colle ton référentiel d'exigences (ou importe un fichier .md/.txt) : une exigence par ligne,
-                au format "N. Titre — description". L'application recherche les tests qui s'en réclament
-                (tag/annotation avec l'ID) et, à défaut, par recoupement de mots-clés (marqué comme non fiable).
-                Ceci prouve qu'un test existe et prétend couvrir l'exigence — pas qu'il teste le bon comportement.
-              </p>
-
-              <textarea
-                value={testCoverageRequirements}
-                onChange={e => setTestCoverageRequirements(e.target.value)}
-                placeholder={'1. Connexion utilisateur — se connecter avec email/mot de passe\n2. Inscription — créer un compte'}
-                rows={10}
-                style={{
-                  fontFamily: 'var(--font-mono)',
-                  fontSize: 12,
-                  padding: 10,
-                  borderRadius: 6,
-                  border: '1px solid var(--line-2)',
-                  background: 'var(--bg-2)',
-                  color: 'var(--fg-1)',
-                  resize: 'vertical',
-                }}
-              />
-              <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-                <input
-                  type="file"
-                  accept=".md,.txt"
-                  onChange={e => handleRequirementsFile(e.target.files?.[0])}
-                  style={{ fontSize: 12, color: 'var(--fg-2)' }}
-                />
-                <button
-                  className="btn btn-primary btn-sm"
-                  disabled={testCoverageChecking || !testCoverageRequirements.trim()}
-                  onClick={runTestCoverageCheck}
-                  style={{ marginLeft: 'auto' }}
-                >
-                  {testCoverageChecking ? 'Vérification…' : 'Vérifier'}
-                </button>
-              </div>
-            </div>
-
-            {testCoverageError && (
-              <div className="card" style={{ borderColor: 'var(--bad)', padding: 14 }}>
-                <p style={{ margin: 0, fontSize: 12, color: 'var(--bad)' }}>{testCoverageError}</p>
-              </div>
-            )}
-
-            {testCoverageReport && (
-              <div className="card" style={{ padding: 16, display: 'flex', flexDirection: 'column', gap: 10 }}>
-                <p style={{ margin: 0, fontSize: 11, color: 'var(--fg-2)' }}>
-                  {testCoverageReport.coveredCount}/{testCoverageReport.requirementCount} exigence(s) couverte(s)
-                  · {testCoverageReport.uncoveredCount} non couverte(s)
-                </p>
-                <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
-                  {testCoverageReport.coverage.map(c => (
-                    <div key={c.requirementId} style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
-                      <div style={{ display: 'flex', alignItems: 'baseline', gap: 8 }}>
-                        <Pill tone={c.status === 'COVERED_CONFIRMED' ? 'ok' : c.status === 'COVERED_HEURISTIC' ? 'warn' : 'bad'}>
-                          {c.status === 'COVERED_CONFIRMED' ? 'Confirmé' : c.status === 'COVERED_HEURISTIC' ? '⚠ Heuristique' : 'Non couverte'}
-                        </Pill>
-                        <span style={{ fontSize: 12, color: 'var(--fg-1)' }}>{c.requirementId}. {c.title}</span>
-                      </div>
-                      {c.matchedTests.length > 0 && (
-                        <ul style={{ margin: '0 0 0 24px', padding: 0, fontSize: 11, color: 'var(--fg-2)' }}>
-                          {c.matchedTests.map((t, i) => (
-                            <li key={i}>
-                              {t.className}.{t.methodName}
-                              {t.confidence === 'HEURISTIC' && t.matchedKeywords && (
-                                <> — correspondance approximative sur : {t.matchedKeywords.join(', ')}</>
-                              )}
-                            </li>
-                          ))}
-                        </ul>
-                      )}
-                    </div>
-                  ))}
-                </div>
-              </div>
-            )}
-          </div>
-        ) : (
-        <>
         {loading && (
           <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', height: '100%', color: 'var(--fg-2)', fontSize: 13 }}>
             Génération du diagramme…
@@ -693,12 +363,9 @@ export default function DiagramEditor() {
             )}
           </div>
         )}
-        </>
-        )}
       </div>
 
       {/* Légende */}
-      {tab !== 'conformance' && (
       <div style={{ display: 'flex', alignItems: 'center', gap: 20, padding: '8px 20px', background: 'var(--bg-1)', borderTop: '1px solid var(--line-1)', flexShrink: 0 }}>
         {tab !== 'packages' ? (
           [
@@ -726,7 +393,6 @@ export default function DiagramEditor() {
           Analyse : {recordId}
         </span>
       </div>
-      )}
     </div>
   )
 }
