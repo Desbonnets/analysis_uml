@@ -13,12 +13,14 @@ const ROLE_DISPLAY: Record<RoleName, string> = {
   admin: 'Administrateur',
   architect: 'Architecte logiciel',
   developer: 'Développeur',
+  superadmin: 'Super administrateur (dev)',
 }
 
-const ROLE_TONE: Record<RoleName, 'warn' | 'info' | 'neutral'> = {
+const ROLE_TONE: Record<RoleName, 'warn' | 'info' | 'neutral' | 'bad'> = {
   admin: 'warn',
   architect: 'info',
   developer: 'neutral',
+  superadmin: 'bad',
 }
 
 const plans = [

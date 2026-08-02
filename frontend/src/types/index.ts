@@ -82,7 +82,7 @@ export interface Violation {
   line: number
 }
 
-export type RoleName = 'admin' | 'architect' | 'developer'
+export type RoleName = 'admin' | 'architect' | 'developer' | 'superadmin'
 export type PlanName = 'free' | 'pro' | 'enterprise'
 
 export interface RoleInfo {

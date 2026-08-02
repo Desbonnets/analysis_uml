@@ -28,15 +28,17 @@ public class ProjectService {
     private final ProjectRepository projectRepository;
     private final ProjectMemberRepository memberRepository;
 
-    public List<ProjectDto> findAll(String requesterEmail) {
-        return projectRepository.findByMemberEmail(requesterEmail).stream()
-                .map(this::toDto).collect(Collectors.toList());
+    public List<ProjectDto> findAll(String requesterEmail, boolean superAdmin) {
+        List<Project> projects = superAdmin
+                ? projectRepository.findAll()
+                : projectRepository.findByMemberEmail(requesterEmail);
+        return projects.stream().map(this::toDto).collect(Collectors.toList());
     }
 
-    public ProjectDto findById(Long id, String requesterEmail) {
+    public ProjectDto findById(Long id, String requesterEmail, boolean superAdmin) {
         Project project = projectRepository.findById(id)
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Projet introuvable"));
-        if (!memberRepository.existsByProjectIdAndUserEmail(id, requesterEmail)) {
+        if (!superAdmin && !memberRepository.existsByProjectIdAndUserEmail(id, requesterEmail)) {
             throw new ResponseStatusException(HttpStatus.FORBIDDEN, "Accès refusé");
         }
         return toDto(project);
@@ -65,10 +67,10 @@ public class ProjectService {
     }
 
     @Transactional
-    public ProjectDto update(Long id, UpdateProjectRequest req, String requesterEmail) {
+    public ProjectDto update(Long id, UpdateProjectRequest req, String requesterEmail, boolean superAdmin) {
         Project project = projectRepository.findById(id)
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Projet introuvable"));
-        if (!project.getOwnerEmail().equals(requesterEmail)) {
+        if (!superAdmin && !project.getOwnerEmail().equals(requesterEmail)) {
             throw new ResponseStatusException(HttpStatus.FORBIDDEN, "Accès refusé");
         }
         if (req.getName() != null) project.setName(req.getName());
@@ -84,10 +86,10 @@ public class ProjectService {
     }
 
     @Transactional
-    public GenerateTokenResponse generateToken(Long id, String requesterEmail) {
+    public GenerateTokenResponse generateToken(Long id, String requesterEmail, boolean superAdmin) {
         Project project = projectRepository.findById(id)
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Projet introuvable"));
-        if (!project.getOwnerEmail().equals(requesterEmail)) {
+        if (!superAdmin && !project.getOwnerEmail().equals(requesterEmail)) {
             throw new ResponseStatusException(HttpStatus.FORBIDDEN, "Accès refusé");
         }
         String token = UUID.randomUUID().toString();
@@ -111,10 +113,10 @@ public class ProjectService {
     }
 
     @Transactional
-    public void delete(Long id, String requesterEmail) {
+    public void delete(Long id, String requesterEmail, boolean superAdmin) {
         Project project = projectRepository.findById(id)
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Projet introuvable"));
-        if (!project.getOwnerEmail().equals(requesterEmail)) {
+        if (!superAdmin && !project.getOwnerEmail().equals(requesterEmail)) {
             throw new ResponseStatusException(HttpStatus.FORBIDDEN, "Accès refusé");
         }
         projectRepository.delete(project);
@@ -122,8 +124,8 @@ public class ProjectService {
 
     // ── Member management ──────────────────────────────────────────────────────
 
-    public List<ProjectMemberDto> getMembers(Long projectId, String requesterEmail) {
-        if (!memberRepository.existsByProjectIdAndUserEmail(projectId, requesterEmail)) {
+    public List<ProjectMemberDto> getMembers(Long projectId, String requesterEmail, boolean superAdmin) {
+        if (!superAdmin && !memberRepository.existsByProjectIdAndUserEmail(projectId, requesterEmail)) {
             throw new ResponseStatusException(HttpStatus.FORBIDDEN, "Accès refusé");
         }
         return memberRepository.findByProjectId(projectId).stream()
@@ -132,10 +134,10 @@ public class ProjectService {
     }
 
     @Transactional
-    public ProjectMemberDto addMember(Long projectId, AddMemberRequest req, String requesterEmail) {
+    public ProjectMemberDto addMember(Long projectId, AddMemberRequest req, String requesterEmail, boolean superAdmin) {
         Project project = projectRepository.findById(projectId)
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Projet introuvable"));
-        if (!project.getOwnerEmail().equals(requesterEmail)) {
+        if (!superAdmin && !project.getOwnerEmail().equals(requesterEmail)) {
             throw new ResponseStatusException(HttpStatus.FORBIDDEN, "Seul le propriétaire peut ajouter des membres");
         }
         if (memberRepository.existsByProjectIdAndUserEmail(projectId, req.userEmail())) {
@@ -151,10 +153,10 @@ public class ProjectService {
     }
 
     @Transactional
-    public void removeMember(Long projectId, String memberEmail, String requesterEmail) {
+    public void removeMember(Long projectId, String memberEmail, String requesterEmail, boolean superAdmin) {
         Project project = projectRepository.findById(projectId)
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Projet introuvable"));
-        if (!project.getOwnerEmail().equals(requesterEmail)) {
+        if (!superAdmin && !project.getOwnerEmail().equals(requesterEmail)) {
             throw new ResponseStatusException(HttpStatus.FORBIDDEN, "Seul le propriétaire peut retirer des membres");
         }
         if (memberEmail.equals(project.getOwnerEmail())) {

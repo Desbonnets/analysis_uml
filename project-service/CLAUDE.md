@@ -9,11 +9,17 @@ dto/        ProjectDto, CreateProjectRequest, UpdateProjectRequest
             GenerateTokenResponse, SubmitAnalysisRequest
 service/    ProjectService (CRUD, owner-only update/delete, token generation, analysis report)
 controller/ ProjectController (/projects/**)
-security/   JwtUtil, JwtAuthFilter, JwtUserDetailsService (stateless — no user DB)
-config/     SecurityConfig, DevDataSeeder
+security/   JwtUtil, JwtAuthFilter, JwtUserDetailsService (stateless — no user DB), SuperAdminGuard
+config/     SecurityConfig, DevDataSeeder (dev-only, @Profile("!docker"))
 ```
 
 Authorization: strictly membership-based, no admin bypass — a user (including `ROLE_ADMIN`) only sees/lists projects they are a member of (`ProjectMember`, checked via `ProjectRepository.findByMemberEmail` / `ProjectMemberRepository.existsByProjectIdAndUserEmail`); update/delete/token/member-management are further restricted to the project owner (`ownerEmail` == JWT subject).
+
+**`ROLE_SUPERADMIN` (dev-only full bypass)**: `SuperAdminGuard.isSuperAdmin(auth)` grants a total view/edit/delete/member-management bypass on every project, used by every method in `ProjectController`/`ProjectService` (passed as a `boolean superAdmin` parameter). Double-locked so it can never activate outside local dev:
+1. The `superadmin` role and its `superadmin@dev.local` account only exist because `auth-service`'s `DevDataSeeder` seeds them — `ProdDataSeeder` (the `docker`-profile seeder) never does.
+2. Even if a `ROLE_SUPERADMIN` JWT somehow reached this service, `SuperAdminGuard` itself checks `Environment.acceptsProfiles(Profiles.of("docker"))` and refuses the bypass whenever this service's own active profile is `docker`.
+
+Both `project-service` and `auth-service`'s `DevDataSeeder` are `@Profile("!docker")` — previously unguarded, so all dev fixtures (test accounts + seed projects) would have been created even in a `docker`/prod deployment.
 
 **`Project.languages`**: a project can have multiple languages/frameworks (`@ElementCollection`, `project_languages` join table) — no longer a single `language` string. On an existing dev DB with `ddl-auto=update`, the old `language` column is not dropped and the new join table starts empty; drop/recreate `projet_db` (or manually migrate) before relying on seeded/existing project data.
 

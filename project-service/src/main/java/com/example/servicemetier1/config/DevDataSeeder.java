@@ -7,11 +7,13 @@ import com.example.servicemetier1.repository.ProjectRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.boot.ApplicationArguments;
 import org.springframework.boot.ApplicationRunner;
+import org.springframework.context.annotation.Profile;
 import org.springframework.stereotype.Component;
 
 import java.util.List;
 
 @Component
+@Profile("!docker")
 @RequiredArgsConstructor
 public class DevDataSeeder implements ApplicationRunner {
 
