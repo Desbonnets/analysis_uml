@@ -31,8 +31,14 @@ public class Project {
 
     private String description;
 
-    @Column(nullable = false)
-    private String language;
+    @ElementCollection(fetch = FetchType.EAGER)
+    @CollectionTable(name = "project_languages", joinColumns = @JoinColumn(name = "project_id"))
+    @Column(name = "language", nullable = false)
+    @Builder.Default
+    private List<String> languages = new ArrayList<>();
+
+    @Column(name = "logo_url", columnDefinition = "TEXT")
+    private String logoUrl;
 
     @Column(nullable = false)
     @Builder.Default

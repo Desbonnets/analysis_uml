@@ -50,8 +50,9 @@ public class ProjectService {
         Project project = Project.builder()
                 .name(req.getName())
                 .description(req.getDescription())
-                .language(req.getLanguage())
+                .languages(req.getLanguages())
                 .repositoryUrl(req.getRepositoryUrl())
+                .logoUrl(req.getLogoUrl())
                 .ownerEmail(ownerEmail)
                 .ownerName(resolvedName)
                 .build();
@@ -74,12 +75,13 @@ public class ProjectService {
         }
         if (req.getName() != null) project.setName(req.getName());
         if (req.getDescription() != null) project.setDescription(req.getDescription());
-        if (req.getLanguage() != null) project.setLanguage(req.getLanguage());
+        if (req.getLanguages() != null && !req.getLanguages().isEmpty()) project.setLanguages(req.getLanguages());
         if (req.getStatus() != null) project.setStatus(req.getStatus());
         if (req.getScore() != null) project.setScore(req.getScore());
         if (req.getDiagramsCount() != null) project.setDiagramsCount(req.getDiagramsCount());
         if (req.getViolationsCount() != null) project.setViolationsCount(req.getViolationsCount());
         if (req.getRepositoryUrl() != null) project.setRepositoryUrl(req.getRepositoryUrl());
+        if (req.getLogoUrl() != null) project.setLogoUrl(req.getLogoUrl().isBlank() ? null : req.getLogoUrl());
         return toDto(projectRepository.save(project));
     }
 
@@ -174,7 +176,7 @@ public class ProjectService {
                 .id(p.getId())
                 .name(p.getName())
                 .description(p.getDescription())
-                .language(p.getLanguage())
+                .languages(p.getLanguages())
                 .status(p.getStatus())
                 .ownerEmail(p.getOwnerEmail())
                 .ownerName(p.getOwnerName())
@@ -182,6 +184,7 @@ public class ProjectService {
                 .diagramsCount(p.getDiagramsCount())
                 .violationsCount(p.getViolationsCount())
                 .repositoryUrl(p.getRepositoryUrl())
+                .logoUrl(p.getLogoUrl())
                 .hasApiToken(p.getApiToken() != null)
                 .createdAt(p.getCreatedAt())
                 .updatedAt(p.getUpdatedAt())

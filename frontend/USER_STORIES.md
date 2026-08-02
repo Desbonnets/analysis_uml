@@ -27,10 +27,10 @@ Ce fichier est maintenu à la main par l'équipe et mis à jour par Claude Code 
 
 ## Épopée 3 — Gestion des projets
 
-10. ✅ **Lister mes projets** — En tant qu'utilisateur, je veux voir tous mes projets sous forme de cartes (langage, statut, score, membres).
+10. ✅ **Lister mes projets** — En tant qu'utilisateur, je veux voir tous mes projets sous forme de cartes (langages, statut, nombre réel de diagrammes enregistrés, violations, membres, nombre d'analyses effectuées). Le nombre de diagrammes vient de `listSavedUmlDiagrams` (diagram-service) et le nombre d'analyses de `getAnalysisHistory` (analysis-service), agrégés côté client par projet — plus de compteur statique. Le tag de statut "Nouveau" n'est plus affiché (peu utile tant qu'aucune analyse n'a été lancée).
 11. ✅ **Rechercher un projet** — En tant qu'utilisateur, je veux rechercher un projet par nom.
-12. ✅ **Filtrer par statut** — En tant qu'utilisateur, je veux filtrer mes projets par statut (Tous / Analysé / En cours / Nouveau).
-13. ✅ **Créer un projet** — En tant qu'utilisateur, je veux créer un projet (nom, description, URL de dépôt optionnelle, langage/framework).
+12. ✅ **Filtrer par statut** — En tant qu'utilisateur, je veux filtrer mes projets par statut (Tous / Analysé / En cours).
+13. ✅ **Créer un projet** — En tant qu'utilisateur, je veux créer un projet (nom, description, URL de dépôt optionnelle, un ou plusieurs langages/frameworks, logo optionnel).
 14. ✅ **Supprimer un projet** — En tant que propriétaire d'un projet, je veux le supprimer (avec confirmation).
 15. ✅ **Voir les membres d'un projet** — En tant qu'utilisateur, je veux voir les avatars et rôles des membres associés à un projet.
 16. ✅ **Accès restreint à la suppression** — En tant qu'utilisateur non-propriétaire, je ne dois pas voir l'option de suppression sur un projet qui n'est pas le mien.
@@ -115,3 +115,9 @@ Ce fichier est maintenu à la main par l'équipe et mis à jour par Claude Code 
 ## Épopée 2 (suite) — Widget dashboard "Analyses récentes"
 
 70. 🚧 **Analyses de conformité/tests récentes sur le tableau de bord** — En tant qu'utilisateur, je veux voir mes 5 dernières analyses de conformité et de couverture des tests enregistrées, afin de suivre l'évolution de la qualité de mes projets sans devoir tout relancer manuellement. Widget dashboard en place (état vide pour l'instant, "Aucune analyse enregistrée") — la sauvegarde des résultats de `ConformanceReportDto` (item 36) et `TestCoverageReportDto` (item 69) n'est pas encore implémentée côté `diagram-service` (aujourd'hui calculés à la volée à chaque vérification, jamais persistés). Fonctionnalité à construire : nouvelle entité + endpoint de sauvegarde (même pattern que `SavedUmlDiagram`, épopée 10) et un bouton "Enregistrer le résultat" sur les pages Conformité et Couverture des tests.
+
+## Épopée 3 (suite) — Gestion des projets
+
+71. ✅ **Choisir plusieurs langages pour un projet** — En tant qu'utilisateur, je veux associer un ou plusieurs langages/frameworks à un projet (création et modification) plutôt qu'un seul, un projet réel mélangeant souvent plusieurs technologies. `Project.language` (String) devient `Project.languages` (liste, table `project_languages`) côté `project-service`.
+72. ✅ **Modifier un projet** — En tant que propriétaire d'un projet, je veux modifier son nom, sa description, son URL de dépôt et ses langages depuis la page Projets, sans devoir le recréer.
+73. ✅ **Changer le logo d'un projet** — En tant que propriétaire d'un projet, je veux définir une image comme logo du projet (comme une photo de profil), recadrée et redimensionnée côté client puis stockée en data URL (`Project.logoUrl`, colonne TEXT côté `project-service`) — pas d'infrastructure de stockage de fichiers dédiée pour l'instant.

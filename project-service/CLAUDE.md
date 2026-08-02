@@ -15,6 +15,10 @@ config/     SecurityConfig, DevDataSeeder
 
 Authorization: all authenticated users can list/read all projects; update/delete restricted to the project owner (`ownerEmail` == JWT subject).
 
+**`Project.languages`**: a project can have multiple languages/frameworks (`@ElementCollection`, `project_languages` join table) — no longer a single `language` string. On an existing dev DB with `ddl-auto=update`, the old `language` column is not dropped and the new join table starts empty; drop/recreate `projet_db` (or manually migrate) before relying on seeded/existing project data.
+
+**`Project.logoUrl`**: optional project avatar, stored as a client-resized base64 `data:` URL in a `TEXT` column (no MinIO/file-storage dependency added to this service). Frontend resizes to a 256×256 JPEG before sending — keep payloads small if calling `PUT /projects/{id}` directly.
+
 **CI integration endpoints:**
 - `POST /projects/{id}/token` — generate/regenerate API token (JWT auth, owner only)
 - `POST /projects/{id}/report` — receive CI analysis report (no JWT, `X-Project-Token` header)

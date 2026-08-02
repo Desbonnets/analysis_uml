@@ -9,6 +9,8 @@ import org.springframework.boot.ApplicationArguments;
 import org.springframework.boot.ApplicationRunner;
 import org.springframework.stereotype.Component;
 
+import java.util.List;
+
 @Component
 @RequiredArgsConstructor
 public class DevDataSeeder implements ApplicationRunner {
@@ -23,11 +25,11 @@ public class DevDataSeeder implements ApplicationRunner {
     }
 
     private void seed() {
-        // Projet Alpha — groupe 1 : admin@dev.local (owner), alice@dev.local, bob@dev.local
+        // Groupe 1 : admin@dev.local, alice@dev.local, bob@dev.local — 2 projets, propriétaires différents
         Project alpha = projectRepository.save(Project.builder()
                 .name("Projet Alpha")
                 .description("Premier projet de démonstration.")
-                .language("Spring Boot")
+                .languages(List.of("Spring Boot", "Node.js"))
                 .status("new")
                 .ownerEmail("admin@dev.local")
                 .ownerName("Admin Dev")
@@ -36,11 +38,23 @@ public class DevDataSeeder implements ApplicationRunner {
         addMember(alpha, "alice@dev.local", "Alice Dev",  "member");
         addMember(alpha, "bob@dev.local",   "Bob Dev",    "member");
 
-        // Projet Beta — groupe 2 : carol@dev.local (owner), dave@dev.local, eve@dev.local
+        Project alphaLegacy = projectRepository.save(Project.builder()
+                .name("Projet Alpha Legacy")
+                .description("Ancienne application du groupe Alpha, encore en maintenance.")
+                .languages(List.of("Symfony"))
+                .status("new")
+                .ownerEmail("alice@dev.local")
+                .ownerName("Alice Dev")
+                .build());
+        addMember(alphaLegacy, "alice@dev.local", "Alice Dev", "owner");
+        addMember(alphaLegacy, "admin@dev.local", "Admin Dev", "member");
+        addMember(alphaLegacy, "bob@dev.local",   "Bob Dev",   "member");
+
+        // Groupe 2 : carol@dev.local, dave@dev.local, eve@dev.local — 2 projets, propriétaires différents
         Project beta = projectRepository.save(Project.builder()
                 .name("Projet Beta")
                 .description("Deuxième projet de démonstration.")
-                .language("Spring Boot")
+                .languages(List.of("Symfony"))
                 .status("new")
                 .ownerEmail("carol@dev.local")
                 .ownerName("Carol Dev")
@@ -48,6 +62,18 @@ public class DevDataSeeder implements ApplicationRunner {
         addMember(beta, "carol@dev.local", "Carol Dev", "owner");
         addMember(beta, "dave@dev.local",  "Dave Dev",  "member");
         addMember(beta, "eve@dev.local",   "Eve Dev",   "member");
+
+        Project betaServices = projectRepository.save(Project.builder()
+                .name("Projet Beta Services")
+                .description("API backend du groupe Beta.")
+                .languages(List.of("Spring Boot"))
+                .status("new")
+                .ownerEmail("dave@dev.local")
+                .ownerName("Dave Dev")
+                .build());
+        addMember(betaServices, "dave@dev.local",  "Dave Dev",  "owner");
+        addMember(betaServices, "carol@dev.local", "Carol Dev", "member");
+        addMember(betaServices, "eve@dev.local",   "Eve Dev",   "member");
     }
 
     private void addMember(Project project, String email, String name, String role) {
