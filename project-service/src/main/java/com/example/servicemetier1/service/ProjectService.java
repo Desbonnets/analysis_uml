@@ -28,17 +28,15 @@ public class ProjectService {
     private final ProjectRepository projectRepository;
     private final ProjectMemberRepository memberRepository;
 
-    public List<ProjectDto> findAll(String requesterEmail, boolean isAdmin) {
-        List<Project> projects = isAdmin
-                ? projectRepository.findAll()
-                : projectRepository.findByMemberEmail(requesterEmail);
-        return projects.stream().map(this::toDto).collect(Collectors.toList());
+    public List<ProjectDto> findAll(String requesterEmail) {
+        return projectRepository.findByMemberEmail(requesterEmail).stream()
+                .map(this::toDto).collect(Collectors.toList());
     }
 
-    public ProjectDto findById(Long id, String requesterEmail, boolean isAdmin) {
+    public ProjectDto findById(Long id, String requesterEmail) {
         Project project = projectRepository.findById(id)
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Projet introuvable"));
-        if (!isAdmin && !memberRepository.existsByProjectIdAndUserEmail(id, requesterEmail)) {
+        if (!memberRepository.existsByProjectIdAndUserEmail(id, requesterEmail)) {
             throw new ResponseStatusException(HttpStatus.FORBIDDEN, "Accès refusé");
         }
         return toDto(project);
@@ -124,8 +122,8 @@ public class ProjectService {
 
     // ── Member management ──────────────────────────────────────────────────────
 
-    public List<ProjectMemberDto> getMembers(Long projectId, String requesterEmail, boolean isAdmin) {
-        if (!isAdmin && !memberRepository.existsByProjectIdAndUserEmail(projectId, requesterEmail)) {
+    public List<ProjectMemberDto> getMembers(Long projectId, String requesterEmail) {
+        if (!memberRepository.existsByProjectIdAndUserEmail(projectId, requesterEmail)) {
             throw new ResponseStatusException(HttpStatus.FORBIDDEN, "Accès refusé");
         }
         return memberRepository.findByProjectId(projectId).stream()

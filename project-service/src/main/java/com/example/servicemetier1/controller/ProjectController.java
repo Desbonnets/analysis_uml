@@ -26,12 +26,12 @@ public class ProjectController {
 
     @GetMapping
     public List<ProjectDto> getAll(Authentication auth) {
-        return projectService.findAll(auth.getName(), isAdmin(auth));
+        return projectService.findAll(auth.getName());
     }
 
     @GetMapping("/{id}")
     public ProjectDto getById(@PathVariable Long id, Authentication auth) {
-        return projectService.findById(id, auth.getName(), isAdmin(auth));
+        return projectService.findById(id, auth.getName());
     }
 
     @PostMapping
@@ -75,7 +75,7 @@ public class ProjectController {
 
     @GetMapping("/{id}/members")
     public List<ProjectMemberDto> getMembers(@PathVariable Long id, Authentication auth) {
-        return projectService.getMembers(id, auth.getName(), isAdmin(auth));
+        return projectService.getMembers(id, auth.getName());
     }
 
     @PostMapping("/{id}/members")
@@ -94,10 +94,5 @@ public class ProjectController {
             Authentication auth) {
         projectService.removeMember(id, memberEmail, auth.getName());
         return ResponseEntity.noContent().build();
-    }
-
-    private boolean isAdmin(Authentication auth) {
-        return auth.getAuthorities().stream()
-                .anyMatch(a -> a.getAuthority().equals("ROLE_ADMIN"));
     }
 }
