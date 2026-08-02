@@ -21,9 +21,9 @@ Ce fichier est maintenu à la main par l'équipe et mis à jour par Claude Code 
 ## Épopée 2 — Tableau de bord
 
 6. ✅ **Vue d'ensemble** — En tant qu'utilisateur connecté, je veux voir en un coup d'œil le nombre de projets analysés, de diagrammes générés, de violations actives et le score moyen d'architecture.
-7. ✅ **Projets récents** — En tant qu'utilisateur, je veux voir la liste des 5 projets les plus récents avec langage, nombre de diagrammes, violations et score.
+7. ✅ **Projets récents** — En tant qu'utilisateur, je veux voir la liste des 5 projets triés par date de dernière modification (les plus récemment modifiés en premier), avec langage, nombre de diagrammes, violations et score.
 8. ✅ **Actualisation manuelle** — En tant qu'utilisateur, je veux pouvoir rafraîchir les données du dashboard sans recharger la page.
-9. 🧪 **Flux d'activité** — En tant qu'utilisateur, je veux voir les actions récentes de mon équipe (commits, commentaires, analyses CI) pour rester informé.
+9. ✅ **Diagrammes UML récents** — En tant qu'utilisateur, je veux voir les 5 diagrammes UML enregistrés les plus récemment modifiés (nom, projet associé, date), avec accès direct à chacun. Remplace l'ancien flux d'activité mocké (commits/commentaires fictifs), qui n'avait pas de source de données réelle — voir item 70.
 
 ## Épopée 3 — Gestion des projets
 
@@ -111,3 +111,7 @@ Ce fichier est maintenu à la main par l'équipe et mis à jour par Claude Code 
 ## Épopée 11 — Couverture des tests vs exigences
 
 69. ✅ **Vérifier que les tests couvrent les user stories / cas d'usage** — En tant qu'utilisateur, je veux fournir mon référentiel d'exigences (user stories, cas d'usage) et voir quelles fonctionnalités n'ont aucun test correspondant, en priorité via un identifiant explicite sur le test (`@Tag`/`@group`) et, à défaut, via une correspondance par mots-clés clairement marquée comme non certaine (⚠️ Heuristique). Page dédiée "Couverture des tests" accessible depuis la sidebar (`/test-coverage`), avec son propre sélecteur projet/analyse. Détection des tests limitée à Java et PHP pour l'instant — voir `docs/test-coverage-analysis.md`. Vérifié manuellement de bout en bout sur un projet Java ; le détecteur PHP n'a été validé que par ses tests unitaires (`PhpLanguageParserTest`), pas manuellement bout en bout, faute de projet PHP sous la main.
+
+## Épopée 2 (suite) — Widget dashboard "Analyses récentes"
+
+70. 🚧 **Analyses de conformité/tests récentes sur le tableau de bord** — En tant qu'utilisateur, je veux voir mes 5 dernières analyses de conformité et de couverture des tests enregistrées, afin de suivre l'évolution de la qualité de mes projets sans devoir tout relancer manuellement. Widget dashboard en place (état vide pour l'instant, "Aucune analyse enregistrée") — la sauvegarde des résultats de `ConformanceReportDto` (item 36) et `TestCoverageReportDto` (item 69) n'est pas encore implémentée côté `diagram-service` (aujourd'hui calculés à la volée à chaque vérification, jamais persistés). Fonctionnalité à construire : nouvelle entité + endpoint de sauvegarde (même pattern que `SavedUmlDiagram`, épopée 10) et un bouton "Enregistrer le résultat" sur les pages Conformité et Couverture des tests.
