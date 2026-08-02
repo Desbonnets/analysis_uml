@@ -1,14 +1,14 @@
 import { useState, useEffect, useCallback } from 'react'
 import { Link } from 'react-router-dom'
-import { FolderOpen, RefreshCw, Upload } from 'lucide-react'
+import { FolderOpen, RefreshCw, Upload, FileCode2, ClipboardCheck } from 'lucide-react'
 import Header from '../components/layout/Header'
 import MetricCard from '../components/ui/MetricCard'
-import Avatar from '../components/ui/Avatar'
 import Pill from '../components/ui/Pill'
 import { useAuth } from '../context/AuthContext'
 import { getProjects } from '../api/projects'
+import { listSavedUmlDiagrams } from '../api/savedUmls'
 import violations from '../data/violations.json'
-import type { Project } from '../types'
+import type { Project, SavedUmlDiagram } from '../types'
 
 const scoreColor = (s: number) => s >= 80 ? 'var(--ok)' : s >= 60 ? 'var(--warn)' : 'var(--bad)'
 
@@ -16,21 +16,22 @@ const langShort: Record<string, string> = {
   'Spring Boot': 'java', Symfony: 'php', Laravel: 'php', 'Node.js': 'ts',
 }
 
-const activity = [
-  { initials: 'MR', color: '#FF7A59', who: 'Marie R.',  what: 'a poussé un commit',   target: 'auth-gateway',      ago: '4 min' },
-  { initials: 'CL', color: '#5BC0BE', who: 'Claire L.', what: 'a commenté',            target: 'PaymentController', ago: '12 min' },
-  { initials: 'CI', color: '#A78BFA', who: 'Job CI',    what: 'analyse terminée',      target: 'checkout-service',  ago: '1 h' },
-  { initials: 'SK', color: '#3FB984', who: 'Sam K.',    what: 'a résolu une issue',    target: 'storefront-web',    ago: '3 h' },
-]
+const byUpdatedAtDesc = <T extends { updatedAt: string }>(a: T, b: T) =>
+  new Date(b.updatedAt).getTime() - new Date(a.updatedAt).getTime()
+
+const formatDate = (iso: string) =>
+  new Date(iso).toLocaleDateString('fr-FR', { day: '2-digit', month: 'short', year: 'numeric' })
 
 export default function Dashboard() {
   useAuth()
   const [projects, setProjects] = useState<Project[]>([])
+  const [diagrams, setDiagrams] = useState<SavedUmlDiagram[]>([])
 
   const load = useCallback(async () => {
     try {
-      const data = await getProjects()
-      setProjects(data)
+      const [projectList, diagramList] = await Promise.all([getProjects(), listSavedUmlDiagrams()])
+      setProjects(projectList)
+      setDiagrams(diagramList)
     } catch {
       // keep empty state — metrics show zeros
     }
@@ -38,12 +39,20 @@ export default function Dashboard() {
 
   useEffect(() => { void load() }, [load])
 
-  const analyzed      = projects.filter(p => p.status === 'analyzed')
-  const avgScore      = analyzed.length > 0
+  const analyzed        = projects.filter(p => p.status === 'analyzed')
+  const avgScore        = analyzed.length > 0
     ? Math.round(analyzed.reduce((a, p) => a + p.score, 0) / analyzed.length)
     : 0
   const totalViolations = violations.length
-  const totalDiagrams   = projects.reduce((a, p) => a + p.diagramsCount, 0)
+
+  const recentProjects = [...projects].sort(byUpdatedAtDesc).slice(0, 5)
+  const recentDiagrams = [...diagrams].sort(byUpdatedAtDesc).slice(0, 5)
+
+  const projectName = (projectId: number | null): string =>
+    projectId == null ? 'Aucun projet' : projects.find(p => p.id === projectId)?.name ?? `Projet #${projectId}`
+
+  const diagramCountFor = (projectId: number): number =>
+    diagrams.filter(d => d.projectId === projectId).length
 
   return (
     <div>
@@ -66,8 +75,8 @@ export default function Dashboard() {
             sparkPoints="0,22 14,18 28,16 42,14 56,12 70,10 84,8 100,6"
           />
           <MetricCard
-            label="Diagrammes UML"
-            value={totalDiagrams}
+            label="Diagrammes UML enregistrés"
+            value={diagrams.length}
             delta="+5"
             sparkPoints="0,20 14,16 28,14 42,12 56,10 70,8 84,6 100,4"
           />
@@ -87,7 +96,7 @@ export default function Dashboard() {
           />
         </div>
 
-        <div style={{ display: 'grid', gridTemplateColumns: '2fr 1fr', gap: 20 }}>
+        <div style={{ display: 'grid', gridTemplateColumns: '2fr 1fr', gap: 20, marginBottom: 20 }}>
           <div className="card" style={{ padding: 0 }}>
             <div style={{ padding: '14px 18px', borderBottom: '1px solid var(--line-1)', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
               <h3 style={{ margin: 0, fontSize: 14, fontWeight: 600, color: 'var(--fg-0)' }}>Projets récents</h3>
@@ -106,7 +115,7 @@ export default function Dashboard() {
                 </tr>
               </thead>
               <tbody>
-                {projects.slice(0, 5).map(p => (
+                {recentProjects.map(p => (
                   <tr key={p.id}>
                     <td>
                       <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
@@ -117,7 +126,7 @@ export default function Dashboard() {
                       </div>
                     </td>
                     <td><Pill tone="neutral" square>{langShort[p.language] ?? p.language}</Pill></td>
-                    <td className="num">{p.diagramsCount}</td>
+                    <td className="num">{diagramCountFor(p.id)}</td>
                     <td>
                       {p.violationsCount === 0
                         ? <Pill tone="ok" square>0</Pill>
@@ -130,7 +139,7 @@ export default function Dashboard() {
                     </td>
                   </tr>
                 ))}
-                {projects.length === 0 && (
+                {recentProjects.length === 0 && (
                   <tr>
                     <td colSpan={5} style={{ textAlign: 'center', color: 'var(--fg-2)', padding: 24 }}>Aucun projet</td>
                   </tr>
@@ -140,22 +149,52 @@ export default function Dashboard() {
           </div>
 
           <div className="card" style={{ padding: 0 }}>
-            <div style={{ padding: '14px 18px', borderBottom: '1px solid var(--line-1)' }}>
-              <h3 style={{ margin: 0, fontSize: 14, fontWeight: 600, color: 'var(--fg-0)' }}>Activité</h3>
+            <div style={{ padding: '14px 18px', borderBottom: '1px solid var(--line-1)', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+              <h3 style={{ margin: 0, fontSize: 14, fontWeight: 600, color: 'var(--fg-0)' }}>Diagrammes UML récents</h3>
+              <Link to="/saved-umls" style={{ fontSize: 12, color: 'var(--accent)', textDecoration: 'none' }}>
+                Tout voir →
+              </Link>
             </div>
-            {activity.map((a, i) => (
-              <div key={i} style={{ display: 'flex', gap: 10, padding: '12px 18px', borderBottom: i < activity.length - 1 ? '1px solid var(--line-1)' : 'none' }}>
-                <Avatar initials={a.initials} color={a.color} size={28} />
-                <div style={{ flex: 1, fontSize: 12 }}>
-                  <div style={{ color: 'var(--fg-0)' }}>
-                    <span style={{ fontWeight: 600 }}>{a.who}</span>{' '}
-                    <span style={{ color: 'var(--fg-1)' }}>{a.what}</span>
-                  </div>
-                  <div className="mono" style={{ color: 'var(--fg-1)', fontSize: 11, marginTop: 2 }}>{a.target}</div>
-                </div>
-                <span style={{ fontSize: 11, color: 'var(--fg-2)', flexShrink: 0 }}>{a.ago}</span>
+            {recentDiagrams.length > 0 ? (
+              <div style={{ display: 'flex', flexDirection: 'column', gap: 4, padding: 8 }}>
+                {recentDiagrams.map(d => (
+                  <Link key={d.id} to={`/saved-umls/${d.id}`}
+                    style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '8px 10px', borderRadius: 6, textDecoration: 'none' }}
+                  >
+                    <div style={{ width: 30, height: 30, borderRadius: 6, background: 'var(--info-soft)', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+                      <FileCode2 size={13} style={{ color: 'var(--info)' }} />
+                    </div>
+                    <div style={{ flex: 1, minWidth: 0 }}>
+                      <p style={{ margin: 0, fontSize: 12, fontWeight: 500, color: 'var(--fg-0)', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+                        {d.name}
+                      </p>
+                      <p style={{ margin: 0, fontSize: 11, color: 'var(--fg-2)', marginTop: 1 }}>
+                        {projectName(d.projectId)} · {formatDate(d.updatedAt)}
+                      </p>
+                    </div>
+                  </Link>
+                ))}
               </div>
-            ))}
+            ) : (
+              <div style={{ textAlign: 'center', padding: '32px 16px', color: 'var(--fg-2)' }}>
+                <FileCode2 size={28} style={{ margin: '0 auto 8px', opacity: 0.3, display: 'block' }} />
+                <p style={{ fontSize: 12, margin: 0 }}>Aucun diagramme enregistré</p>
+              </div>
+            )}
+          </div>
+        </div>
+
+        <div className="card" style={{ padding: 0 }}>
+          <div style={{ padding: '14px 18px', borderBottom: '1px solid var(--line-1)' }}>
+            <h3 style={{ margin: 0, fontSize: 14, fontWeight: 600, color: 'var(--fg-0)' }}>Analyses récentes (conformité / tests)</h3>
+          </div>
+          <div style={{ textAlign: 'center', padding: '32px 16px', color: 'var(--fg-2)' }}>
+            <ClipboardCheck size={28} style={{ margin: '0 auto 8px', opacity: 0.3, display: 'block' }} />
+            <p style={{ fontSize: 12, margin: 0 }}>Aucune analyse enregistrée pour le moment</p>
+            <p style={{ fontSize: 11, margin: '4px 0 0', opacity: 0.8 }}>
+              L'enregistrement des résultats de conformité et de couverture des tests arrive prochainement —
+              les 5 dernières analyses enregistrées s'afficheront ici.
+            </p>
           </div>
         </div>
       </div>
