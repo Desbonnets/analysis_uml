@@ -1,7 +1,10 @@
 package com.example.servicemetier1.dto;
 
 import jakarta.validation.constraints.NotBlank;
+import jakarta.validation.constraints.NotEmpty;
 import lombok.Data;
+
+import java.util.List;
 
 @Data
 public class CreateProjectRequest {
@@ -10,8 +13,10 @@ public class CreateProjectRequest {
 
     private String description;
 
-    @NotBlank(message = "Le langage est requis")
-    private String language;
+    @NotEmpty(message = "Au moins un langage est requis")
+    private List<String> languages;
 
     private String repositoryUrl;
+
+    private String logoUrl;
 }

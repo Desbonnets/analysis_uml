@@ -125,7 +125,13 @@ export default function Dashboard() {
                         </Link>
                       </div>
                     </td>
-                    <td><Pill tone="neutral" square>{langShort[p.language] ?? p.language}</Pill></td>
+                    <td>
+                      <div style={{ display: 'flex', gap: 4, flexWrap: 'wrap' }}>
+                        {p.languages.map(l => (
+                          <Pill key={l} tone="neutral" square>{langShort[l] ?? l}</Pill>
+                        ))}
+                      </div>
+                    </td>
                     <td className="num">{diagramCountFor(p.id)}</td>
                     <td>
                       {p.violationsCount === 0

@@ -8,7 +8,7 @@ export interface Project {
   id: number
   name: string
   description: string
-  language: 'Spring Boot' | 'Symfony' | 'Laravel' | 'Node.js'
+  languages: string[]
   status: 'analyzed' | 'pending' | 'error' | 'new'
   createdAt: string
   updatedAt: string
@@ -18,6 +18,7 @@ export interface Project {
   ownerEmail: string
   ownerName: string
   repositoryUrl?: string
+  logoUrl?: string
   hasApiToken?: boolean
   members?: ProjectMember[]
 }
@@ -25,18 +26,21 @@ export interface Project {
 export interface CreateProjectRequest {
   name: string
   description: string
-  language: string
+  languages: string[]
   repositoryUrl?: string
+  logoUrl?: string
 }
 
 export interface UpdateProjectRequest {
   name?: string
   description?: string
-  language?: string
+  languages?: string[]
   status?: string
   score?: number
   diagramsCount?: number
   violationsCount?: number
+  repositoryUrl?: string
+  logoUrl?: string
 }
 
 export interface DiagramClass {
@@ -78,7 +82,7 @@ export interface Violation {
   line: number
 }
 
-export type RoleName = 'admin' | 'architect' | 'developer'
+export type RoleName = 'admin' | 'architect' | 'developer' | 'superadmin'
 export type PlanName = 'free' | 'pro' | 'enterprise'
 
 export interface RoleInfo {

@@ -12,7 +12,7 @@ public class ProjectDto {
     private Long id;
     private String name;
     private String description;
-    private String language;
+    private List<String> languages;
     private String status;
     private String ownerEmail;
     private String ownerName;
@@ -20,6 +20,7 @@ public class ProjectDto {
     private int diagramsCount;
     private int violationsCount;
     private String repositoryUrl;
+    private String logoUrl;
     private boolean hasApiToken;
     private LocalDateTime createdAt;
     private LocalDateTime updatedAt;

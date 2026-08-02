@@ -1,11 +1,14 @@
 import { useState, useEffect, useCallback } from 'react'
 import { Link } from 'react-router-dom'
-import { FolderOpen, MoreHorizontal, Plus, SlidersHorizontal, Search, X, Check, Users } from 'lucide-react'
+import { FolderOpen, MoreHorizontal, Plus, Search, X, Check, Users, Pencil, Trash2 } from 'lucide-react'
 import Header from '../components/layout/Header'
 import Pill from '../components/ui/Pill'
+import LogoPicker from '../components/ui/LogoPicker'
 import { useAuth } from '../context/AuthContext'
-import { getProjects, createProject, deleteProject } from '../api/projects'
-import type { Project, ProjectMember, CreateProjectRequest } from '../types'
+import { getProjects, createProject, updateProject, deleteProject } from '../api/projects'
+import { listSavedUmlDiagrams } from '../api/savedUmls'
+import { getAnalysisHistory } from '../api/analysis'
+import type { Project, ProjectMember, CreateProjectRequest, UpdateProjectRequest } from '../types'
 
 const langShort: Record<string, string> = {
   'Spring Boot': 'java', Symfony: 'php', Laravel: 'php', 'Node.js': 'ts',
@@ -74,23 +77,47 @@ const inputStyle: React.CSSProperties = {
   outline: 'none', fontFamily: 'var(--font-sans)',
 }
 
-interface CreateModalProps {
-  onClose: () => void
-  onCreated: (p: Project) => void
+interface ProjectFormState {
+  name: string
+  description: string
+  languages: string[]
+  repositoryUrl: string
+  logoUrl?: string
 }
 
-function CreateModal({ onClose, onCreated }: CreateModalProps) {
-  const [form, setForm] = useState<CreateProjectRequest>({ name: '', description: '', language: 'Spring Boot' })
-  const [errors, setErrors] = useState<Partial<Record<keyof CreateProjectRequest, string>>>({})
+interface ProjectFormModalProps {
+  mode: 'create' | 'edit'
+  project?: Project
+  onClose: () => void
+  onSaved: (p: Project) => void
+}
+
+function ProjectFormModal({ mode, project, onClose, onSaved }: ProjectFormModalProps) {
+  const [form, setForm] = useState<ProjectFormState>({
+    name: project?.name ?? '',
+    description: project?.description ?? '',
+    languages: project?.languages ?? ['Spring Boot'],
+    repositoryUrl: project?.repositoryUrl ?? '',
+    logoUrl: project?.logoUrl,
+  })
+  const [errors, setErrors] = useState<{ name?: string; languages?: string }>({})
   const [apiError, setApiError] = useState('')
   const [loading, setLoading] = useState(false)
 
   function validate(): boolean {
     const next: typeof errors = {}
     if (!form.name.trim()) next.name = 'Nom requis'
-    if (!form.language) next.language = 'Langage requis'
+    if (form.languages.length === 0) next.languages = 'Au moins un langage requis'
     setErrors(next)
     return Object.keys(next).length === 0
+  }
+
+  function toggleLanguage(l: string) {
+    setForm(f => ({
+      ...f,
+      languages: f.languages.includes(l) ? f.languages.filter(x => x !== l) : [...f.languages, l],
+    }))
+    setErrors(er => ({ ...er, languages: undefined }))
   }
 
   async function handleSubmit(e: React.FormEvent) {
@@ -99,8 +126,25 @@ function CreateModal({ onClose, onCreated }: CreateModalProps) {
     if (!validate()) return
     setLoading(true)
     try {
-      const created = await createProject(form)
-      onCreated(created)
+      if (mode === 'create') {
+        const payload: CreateProjectRequest = {
+          name: form.name,
+          description: form.description,
+          languages: form.languages,
+          repositoryUrl: form.repositoryUrl || undefined,
+          logoUrl: form.logoUrl,
+        }
+        onSaved(await createProject(payload))
+      } else if (project) {
+        const payload: UpdateProjectRequest = {
+          name: form.name,
+          description: form.description,
+          languages: form.languages,
+          repositoryUrl: form.repositoryUrl,
+          logoUrl: form.logoUrl ?? '',
+        }
+        onSaved(await updateProject(project.id, payload))
+      }
     } catch (err) {
       setApiError(err instanceof Error ? err.message : 'Erreur serveur')
     } finally {
@@ -112,10 +156,16 @@ function CreateModal({ onClose, onCreated }: CreateModalProps) {
     <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.6)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 100 }}>
       <div className="card" style={{ width: 480, padding: 28 }}>
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 20 }}>
-          <span style={{ fontWeight: 700, fontSize: 15, color: 'var(--fg-0)' }}>Nouveau projet</span>
+          <span style={{ fontWeight: 700, fontSize: 15, color: 'var(--fg-0)' }}>
+            {mode === 'create' ? 'Nouveau projet' : 'Modifier le projet'}
+          </span>
           <button onClick={onClose} style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--fg-2)' }}><X size={16} /></button>
         </div>
         <form onSubmit={handleSubmit} style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
+          <div className="field">
+            <label>Logo du projet</label>
+            <LogoPicker value={form.logoUrl} onChange={v => setForm(f => ({ ...f, logoUrl: v }))} />
+          </div>
           <div className="field">
             <label>Nom du projet</label>
             <input
@@ -139,20 +189,36 @@ function CreateModal({ onClose, onCreated }: CreateModalProps) {
             <label>URL du dépôt <span style={{ color: 'var(--fg-2)', fontWeight: 400 }}>(optionnel)</span></label>
             <input
               style={inputStyle}
-              value={form.repositoryUrl ?? ''}
-              onChange={e => setForm(f => ({ ...f, repositoryUrl: e.target.value || undefined }))}
+              value={form.repositoryUrl}
+              onChange={e => setForm(f => ({ ...f, repositoryUrl: e.target.value }))}
               placeholder="https://github.com/org/repo"
             />
           </div>
           <div className="field">
-            <label>Langage / Framework</label>
-            <select
-              style={{ ...inputStyle, borderColor: errors.language ? 'var(--bad)' : undefined }}
-              value={form.language}
-              onChange={e => setForm(f => ({ ...f, language: e.target.value }))}
-            >
-              {LANGUAGES.map(l => <option key={l} value={l}>{l}</option>)}
-            </select>
+            <label>Langages / Frameworks <span style={{ color: 'var(--fg-2)', fontWeight: 400 }}>(plusieurs possibles)</span></label>
+            <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8 }}>
+              {LANGUAGES.map(l => {
+                const checked = form.languages.includes(l)
+                return (
+                  <button
+                    key={l}
+                    type="button"
+                    onClick={() => toggleLanguage(l)}
+                    style={{
+                      display: 'flex', alignItems: 'center', gap: 6, padding: '6px 10px', borderRadius: 6,
+                      fontSize: 12, fontFamily: 'var(--font-sans)', cursor: 'pointer', border: '1px solid',
+                      background: checked ? 'var(--bg-2)' : 'transparent',
+                      borderColor: checked ? 'var(--accent)' : 'var(--line-2)',
+                      color: checked ? 'var(--fg-0)' : 'var(--fg-1)',
+                    }}
+                  >
+                    {checked && <Check size={12} style={{ color: 'var(--accent)' }} />}
+                    {l}
+                  </button>
+                )
+              })}
+            </div>
+            {errors.languages && <span style={{ fontSize: 11, color: 'var(--bad)', marginTop: 2 }}>{errors.languages}</span>}
           </div>
           {apiError && (
             <div style={{ fontSize: 12, color: 'var(--bad)', padding: '8px 12px', background: 'rgba(255,90,90,.1)', borderRadius: 6 }}>
@@ -162,7 +228,7 @@ function CreateModal({ onClose, onCreated }: CreateModalProps) {
           <div style={{ display: 'flex', gap: 10, justifyContent: 'flex-end', marginTop: 4 }}>
             <button type="button" className="btn btn-ghost btn-sm" onClick={onClose}>Annuler</button>
             <button type="submit" className="btn btn-primary btn-sm" disabled={loading}>
-              {loading ? 'Création...' : 'Créer le projet'}
+              {loading ? 'Enregistrement...' : mode === 'create' ? 'Créer le projet' : 'Enregistrer'}
             </button>
           </div>
         </form>
@@ -179,12 +245,31 @@ export default function Projects() {
   const [search, setSearch] = useState('')
   const [filter, setFilter] = useState('all')
   const [showCreate, setShowCreate] = useState(false)
+  const [editTarget, setEditTarget] = useState<Project | null>(null)
+  const [menuOpen, setMenuOpen] = useState<number | null>(null)
   const [deleteConfirm, setDeleteConfirm] = useState<number | null>(null)
+  const [diagramCounts, setDiagramCounts] = useState<Record<number, number>>({})
+  const [analysisCounts, setAnalysisCounts] = useState<Record<number, number>>({})
 
   const load = useCallback(async () => {
     try {
       const data = await getProjects()
       setProjects(data)
+
+      const [diagrams, histories] = await Promise.all([
+        listSavedUmlDiagrams().catch(() => []),
+        Promise.all(data.map(p => getAnalysisHistory(p.id).catch(() => []))),
+      ])
+
+      const dCounts: Record<number, number> = {}
+      for (const d of diagrams) {
+        if (d.projectId != null) dCounts[d.projectId] = (dCounts[d.projectId] ?? 0) + 1
+      }
+      setDiagramCounts(dCounts)
+
+      const aCounts: Record<number, number> = {}
+      data.forEach((p, i) => { aCounts[p.id] = histories[i].length })
+      setAnalysisCounts(aCounts)
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Erreur de chargement')
     } finally {
@@ -211,10 +296,7 @@ export default function Projects() {
       <Header
         title="Projets"
         actions={
-          <div style={{ display: 'flex', gap: 8 }}>
-            <button className="btn btn-secondary"><SlidersHorizontal size={14} /> Filtrer</button>
-            <button className="btn btn-primary" onClick={() => setShowCreate(true)}><Plus size={14} /> Nouveau projet</button>
-          </div>
+          <button className="btn btn-primary" onClick={() => setShowCreate(true)}><Plus size={14} /> Nouveau projet</button>
         }
       />
 
@@ -229,7 +311,7 @@ export default function Projects() {
               onChange={e => setSearch(e.target.value)}
             />
           </div>
-          {['all', 'analyzed', 'pending', 'new'].map(f => (
+          {['all', 'analyzed', 'pending'].map(f => (
             <button
               key={f}
               onClick={() => setFilter(f)}
@@ -260,76 +342,116 @@ export default function Projects() {
           <div style={{ padding: '80px 0', textAlign: 'center', color: 'var(--fg-2)', fontSize: 13 }}>Chargement...</div>
         ) : (
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: 14 }}>
-            {filtered.map(project => (
-              <div key={project.id} style={{ position: 'relative' }}>
-                <Link to={`/projects/${project.id}`} style={{ textDecoration: 'none' }}>
-                  <div
-                    className="card"
-                    style={{ cursor: 'pointer', transition: 'border-color 120ms' }}
-                    onMouseEnter={e => (e.currentTarget as HTMLElement).style.borderColor = 'var(--line-3)'}
-                    onMouseLeave={e => (e.currentTarget as HTMLElement).style.borderColor = 'var(--line-1)'}
-                  >
-                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 10 }}>
-                      <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-                        <FolderOpen size={18} style={{ color: 'var(--accent)', flexShrink: 0 }} />
-                        <div>
-                          <div style={{ fontSize: 14, fontWeight: 600, color: 'var(--fg-0)' }}>{project.name}</div>
-                          <div style={{ fontSize: 12, color: 'var(--fg-1)', marginTop: 2, lineHeight: 1.4 }}>{project.description}</div>
+            {filtered.map(project => {
+              const diagramsCount = diagramCounts[project.id] ?? 0
+              const analysesCount = analysisCounts[project.id] ?? 0
+              const isOwner = project.ownerEmail === user?.email
+              return (
+                <div key={project.id} style={{ position: 'relative' }}>
+                  <Link to={`/projects/${project.id}`} style={{ textDecoration: 'none' }}>
+                    <div
+                      className="card"
+                      style={{ cursor: 'pointer', transition: 'border-color 120ms' }}
+                      onMouseEnter={e => (e.currentTarget as HTMLElement).style.borderColor = 'var(--line-3)'}
+                      onMouseLeave={e => (e.currentTarget as HTMLElement).style.borderColor = 'var(--line-1)'}
+                    >
+                      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 10 }}>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+                          <div style={{
+                            width: 32, height: 32, borderRadius: 8, overflow: 'hidden', flexShrink: 0,
+                            display: 'flex', alignItems: 'center', justifyContent: 'center',
+                            background: project.logoUrl ? 'transparent' : 'var(--bg-2)',
+                          }}>
+                            {project.logoUrl ? (
+                              <img src={project.logoUrl} alt="" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+                            ) : (
+                              <FolderOpen size={18} style={{ color: 'var(--accent)' }} />
+                            )}
+                          </div>
+                          <div>
+                            <div style={{ fontSize: 14, fontWeight: 600, color: 'var(--fg-0)' }}>{project.name}</div>
+                            <div style={{ fontSize: 12, color: 'var(--fg-1)', marginTop: 2, lineHeight: 1.4 }}>{project.description}</div>
+                          </div>
                         </div>
+                        {isOwner && (
+                          <button
+                            onClick={e => { e.preventDefault(); e.stopPropagation(); setDeleteConfirm(null); setMenuOpen(menuOpen === project.id ? null : project.id) }}
+                            style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--fg-2)', flexShrink: 0 }}
+                          >
+                            <MoreHorizontal size={16} />
+                          </button>
+                        )}
                       </div>
-                      {project.ownerEmail === user?.email && (
-                        <button
-                          onClick={e => { e.preventDefault(); setDeleteConfirm(deleteConfirm === project.id ? null : project.id) }}
-                          style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--fg-2)', flexShrink: 0 }}
-                        >
-                          <MoreHorizontal size={16} />
-                        </button>
-                      )}
-                    </div>
 
-                    <div style={{ display: 'flex', gap: 6, marginTop: 14, flexWrap: 'wrap', alignItems: 'center' }}>
-                      <Pill tone="neutral" square>{langShort[project.language] ?? project.language}</Pill>
-                      <Pill tone={statusTone[project.status]} square dot>{statusLabel[project.status]}</Pill>
-                      <Pill tone="neutral" square>{project.diagramsCount} diagrammes</Pill>
-                      {project.violationsCount > 0
-                        ? <Pill tone="warn" square>{project.violationsCount} violations</Pill>
-                        : <Pill tone="ok" square>0 violation</Pill>}
-                    </div>
+                      <div style={{ display: 'flex', gap: 6, marginTop: 14, flexWrap: 'wrap', alignItems: 'center' }}>
+                        {project.languages.map(l => (
+                          <Pill key={l} tone="neutral" square>{langShort[l] ?? l}</Pill>
+                        ))}
+                        {project.status !== 'new' && (
+                          <Pill tone={statusTone[project.status]} square dot>{statusLabel[project.status]}</Pill>
+                        )}
+                        <Pill tone="neutral" square>{diagramsCount} diagramme{diagramsCount !== 1 ? 's' : ''}</Pill>
+                        {project.violationsCount > 0
+                          ? <Pill tone="warn" square>{project.violationsCount} violations</Pill>
+                          : <Pill tone="ok" square>0 violation</Pill>}
+                      </div>
 
-                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginTop: 14, paddingTop: 14, borderTop: '1px solid var(--line-1)' }}>
-                      {project.members && project.members.length > 0
-                        ? <MemberAvatars members={project.members} />
-                        : <span style={{ fontSize: 11, color: 'var(--fg-2)' }}>{project.ownerName}</span>}
-                      {project.score > 0 ? (
-                        <span className="num" style={{ fontSize: 13, fontWeight: 600, color: scoreColor(project.score) }}>
-                          {project.score}<span style={{ color: 'var(--fg-2)', fontWeight: 400 }}>/100</span>
-                        </span>
-                      ) : (
-                        <span className="dim" style={{ fontSize: 12 }}>Non analysé</span>
-                      )}
+                      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginTop: 14, paddingTop: 14, borderTop: '1px solid var(--line-1)' }}>
+                        {project.members && project.members.length > 0
+                          ? <MemberAvatars members={project.members} />
+                          : <span style={{ fontSize: 11, color: 'var(--fg-2)' }}>{project.ownerName}</span>}
+                        {project.score > 0 ? (
+                          <span className="num" style={{ fontSize: 13, fontWeight: 600, color: scoreColor(project.score) }}>
+                            {project.score}<span style={{ color: 'var(--fg-2)', fontWeight: 400 }}>/100</span>
+                          </span>
+                        ) : (
+                          <span className="dim" style={{ fontSize: 12 }}>
+                            {analysesCount} analyse{analysesCount !== 1 ? 's' : ''}
+                          </span>
+                        )}
+                      </div>
                     </div>
-                  </div>
-                </Link>
+                  </Link>
 
-                {deleteConfirm === project.id && (
-                  <div style={{ position: 'absolute', top: 12, right: 12, background: 'var(--bg-1)', border: '1px solid var(--line-2)', borderRadius: 8, padding: '10px 14px', zIndex: 10, display: 'flex', flexDirection: 'column', gap: 8, minWidth: 180 }}>
-                    <span style={{ fontSize: 12, color: 'var(--fg-0)' }}>Supprimer ce projet ?</span>
-                    <div style={{ display: 'flex', gap: 6 }}>
+                  {menuOpen === project.id && (
+                    <div style={{ position: 'absolute', top: 12, right: 12, background: 'var(--bg-1)', border: '1px solid var(--line-2)', borderRadius: 8, padding: 6, zIndex: 10, display: 'flex', flexDirection: 'column', gap: 2, minWidth: 150 }}>
                       <button
-                        className="btn btn-sm"
-                        style={{ padding: '4px 10px', background: 'var(--bad)', color: '#fff', border: 'none', flex: 1 }}
-                        onClick={() => handleDelete(project.id)}
+                        className="btn btn-ghost btn-sm"
+                        style={{ justifyContent: 'flex-start' }}
+                        onClick={e => { e.preventDefault(); setMenuOpen(null); setEditTarget(project) }}
                       >
-                        <Check size={12} /> Oui
+                        <Pencil size={12} /> Modifier
                       </button>
-                      <button className="btn btn-ghost btn-sm" style={{ padding: '4px 10px', flex: 1 }} onClick={() => setDeleteConfirm(null)}>
-                        <X size={12} /> Non
+                      <button
+                        className="btn btn-ghost btn-sm"
+                        style={{ justifyContent: 'flex-start', color: 'var(--bad)' }}
+                        onClick={e => { e.preventDefault(); setMenuOpen(null); setDeleteConfirm(project.id) }}
+                      >
+                        <Trash2 size={12} /> Supprimer
                       </button>
                     </div>
-                  </div>
-                )}
-              </div>
-            ))}
+                  )}
+
+                  {deleteConfirm === project.id && (
+                    <div style={{ position: 'absolute', top: 12, right: 12, background: 'var(--bg-1)', border: '1px solid var(--line-2)', borderRadius: 8, padding: '10px 14px', zIndex: 10, display: 'flex', flexDirection: 'column', gap: 8, minWidth: 180 }}>
+                      <span style={{ fontSize: 12, color: 'var(--fg-0)' }}>Supprimer ce projet ?</span>
+                      <div style={{ display: 'flex', gap: 6 }}>
+                        <button
+                          className="btn btn-sm"
+                          style={{ padding: '4px 10px', background: 'var(--bad)', color: '#fff', border: 'none', flex: 1 }}
+                          onClick={() => handleDelete(project.id)}
+                        >
+                          <Check size={12} /> Oui
+                        </button>
+                        <button className="btn btn-ghost btn-sm" style={{ padding: '4px 10px', flex: 1 }} onClick={() => setDeleteConfirm(null)}>
+                          <X size={12} /> Non
+                        </button>
+                      </div>
+                    </div>
+                  )}
+                </div>
+              )
+            })}
           </div>
         )}
 
@@ -342,9 +464,19 @@ export default function Projects() {
       </div>
 
       {showCreate && (
-        <CreateModal
+        <ProjectFormModal
+          mode="create"
           onClose={() => setShowCreate(false)}
-          onCreated={p => { setProjects(prev => [...prev, p]); setShowCreate(false) }}
+          onSaved={p => { setProjects(prev => [...prev, p]); setShowCreate(false) }}
+        />
+      )}
+
+      {editTarget && (
+        <ProjectFormModal
+          mode="edit"
+          project={editTarget}
+          onClose={() => setEditTarget(null)}
+          onSaved={p => { setProjects(prev => prev.map(x => x.id === p.id ? p : x)); setEditTarget(null) }}
         />
       )}
     </div>

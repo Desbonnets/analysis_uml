@@ -14,10 +14,11 @@ const PLAN_TONE: Record<PlanName, 'ok' | 'info' | 'warn'> = {
   enterprise: 'warn',
 }
 
-const ROLE_TONE: Record<RoleName, 'warn' | 'info' | 'neutral'> = {
+const ROLE_TONE: Record<RoleName, 'warn' | 'info' | 'neutral' | 'bad'> = {
   admin: 'warn',
   architect: 'info',
   developer: 'neutral',
+  superadmin: 'bad',
 }
 
 function initials(name: string): string {

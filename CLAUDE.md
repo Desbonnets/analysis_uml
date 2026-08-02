@@ -74,11 +74,21 @@ Both `DevDataSeeder` (dev) and `ProdDataSeeder` (docker profile) seed roles befo
 
 ### Dev seed users (non-docker only)
 
+`DevDataSeeder` (auth-service and project-service) is `@Profile("!docker")` — none of this exists in a docker/prod deployment.
+
 | Email | Password | Role | Plan |
 |-------|----------|------|------|
 | `admin@dev.local` | `Admin1234!@#` | admin | pro |
 | `alice@dev.local` | `Alice1234!@#` | architect | pro |
 | `bob@dev.local` | `Bob@Dev1234!` | developer | free |
+| `carol@dev.local` | `Carol1234!@#` | admin | pro |
+| `dave@dev.local` | `Dave1234!@#` | architect | pro |
+| `eve@dev.local` | `Eve@Dev1234!` | developer | free |
+| `superadmin@dev.local` | `SuperAdmin1234!@#` | superadmin | pro |
+
+`admin`/`alice`/`bob` and `carol`/`dave`/`eve` are two separate project groups (see `project-service/CLAUDE.md`) — each admin/architect in a group owns one of that group's two seeded projects, so ownership-only edit rights can be tested without the developer accounts.
+
+`superadmin` is a dev-only role: `project-service`'s `SuperAdminGuard` grants it a full view/edit/delete bypass across every project regardless of membership or ownership, gated by a second, independent check (this service's own active Spring profile must not be `docker`) — see `project-service/CLAUDE.md`.
 
 ### Spring profiles
 

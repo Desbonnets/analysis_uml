@@ -7,6 +7,7 @@ import com.example.servicemetier1.dto.ProjectDto;
 import com.example.servicemetier1.dto.ProjectMemberDto;
 import com.example.servicemetier1.dto.SubmitAnalysisRequest;
 import com.example.servicemetier1.dto.UpdateProjectRequest;
+import com.example.servicemetier1.security.SuperAdminGuard;
 import com.example.servicemetier1.service.ProjectService;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
@@ -23,15 +24,16 @@ import java.util.List;
 public class ProjectController {
 
     private final ProjectService projectService;
+    private final SuperAdminGuard superAdminGuard;
 
     @GetMapping
     public List<ProjectDto> getAll(Authentication auth) {
-        return projectService.findAll(auth.getName(), isAdmin(auth));
+        return projectService.findAll(auth.getName(), superAdminGuard.isSuperAdmin(auth));
     }
 
     @GetMapping("/{id}")
     public ProjectDto getById(@PathVariable Long id, Authentication auth) {
-        return projectService.findById(id, auth.getName(), isAdmin(auth));
+        return projectService.findById(id, auth.getName(), superAdminGuard.isSuperAdmin(auth));
     }
 
     @PostMapping
@@ -47,19 +49,19 @@ public class ProjectController {
             @PathVariable Long id,
             @RequestBody UpdateProjectRequest req,
             Authentication auth) {
-        return projectService.update(id, req, auth.getName());
+        return projectService.update(id, req, auth.getName(), superAdminGuard.isSuperAdmin(auth));
     }
 
     @DeleteMapping("/{id}")
     public ResponseEntity<Void> delete(@PathVariable Long id, Authentication auth) {
-        projectService.delete(id, auth.getName());
+        projectService.delete(id, auth.getName(), superAdminGuard.isSuperAdmin(auth));
         return ResponseEntity.noContent().build();
     }
 
     @PostMapping("/{id}/token")
     public ResponseEntity<GenerateTokenResponse> generateToken(
             @PathVariable Long id, Authentication auth) {
-        return ResponseEntity.ok(projectService.generateToken(id, auth.getName()));
+        return ResponseEntity.ok(projectService.generateToken(id, auth.getName(), superAdminGuard.isSuperAdmin(auth)));
     }
 
     @PostMapping("/{id}/report")
@@ -75,7 +77,7 @@ public class ProjectController {
 
     @GetMapping("/{id}/members")
     public List<ProjectMemberDto> getMembers(@PathVariable Long id, Authentication auth) {
-        return projectService.getMembers(id, auth.getName(), isAdmin(auth));
+        return projectService.getMembers(id, auth.getName(), superAdminGuard.isSuperAdmin(auth));
     }
 
     @PostMapping("/{id}/members")
@@ -84,7 +86,7 @@ public class ProjectController {
             @Valid @RequestBody AddMemberRequest req,
             Authentication auth) {
         return ResponseEntity.status(HttpStatus.CREATED)
-                .body(projectService.addMember(id, req, auth.getName()));
+                .body(projectService.addMember(id, req, auth.getName(), superAdminGuard.isSuperAdmin(auth)));
     }
 
     @DeleteMapping("/{id}/members/{memberEmail}")
@@ -92,12 +94,7 @@ public class ProjectController {
             @PathVariable Long id,
             @PathVariable String memberEmail,
             Authentication auth) {
-        projectService.removeMember(id, memberEmail, auth.getName());
+        projectService.removeMember(id, memberEmail, auth.getName(), superAdminGuard.isSuperAdmin(auth));
         return ResponseEntity.noContent().build();
-    }
-
-    private boolean isAdmin(Authentication auth) {
-        return auth.getAuthorities().stream()
-                .anyMatch(a -> a.getAuthority().equals("ROLE_ADMIN"));
     }
 }
